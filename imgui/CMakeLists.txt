@@ -10,6 +10,8 @@ file(GLOB_RECURSE SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/src/*.h
   ${CMAKE_CURRENT_SOURCE_DIR}/src/*.hpp
 
+  ${CMAKE_CURRENT_SOURCE_DIR}/../shared/*.cpp
+
   imgui/backends/imgui_impl_glfw.cpp
   imgui/backends/imgui_impl_opengl3.cpp
   imgui/imgui.cpp
@@ -31,6 +33,7 @@ target_include_directories(
     src/
     imgui
     imgui/backends
+    ../shared
 )
 
 target_sources(

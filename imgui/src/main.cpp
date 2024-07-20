@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string>
 
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
@@ -14,6 +15,7 @@
 #include "imgui_impl_opengl3.h"
 #include <iostream>
 
+#include <version.hpp>
 
 GLFWwindow* g_window;
 ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
@@ -97,6 +99,11 @@ void loop()
 
 		ImGui::Checkbox("Demo Window", &show_demo_window);      // Edit bools storing our windows open/close state
 		ImGui::Checkbox("Another Window", &show_another_window);
+
+		std::string version = std::to_string(BUILD_NUMBER);
+		version += " ";
+		version += BUILD_NUMBER;
+		ImGui::Text("%s", version.c_str());
 
 		if (ImGui::Button("Open socket")) {
 			EmscriptenWebSocketCreateAttributes ws_attrs = {
