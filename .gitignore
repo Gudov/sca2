@@ -1,3 +1,6 @@
+# Clang cache
+.cache
+
 .vscode/
 .vscode/*
 
