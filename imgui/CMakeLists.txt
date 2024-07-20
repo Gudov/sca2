@@ -21,11 +21,11 @@ project(
 add_executable(imgui)
 
 file(GLOB_RECURSE SOURCES
-  ${CMAKE_CURRENT_SOURCE_DIR}/*.c
-  ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/*.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp
 
-  ${CMAKE_CURRENT_SOURCE_DIR}/*.h
-  ${CMAKE_CURRENT_SOURCE_DIR}/*.hpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/*.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/*.hpp
 
   imgui/backends/imgui_impl_glfw.cpp
   imgui/backends/imgui_impl_opengl3.cpp
@@ -72,7 +72,7 @@ target_link_options(
     "SHELL:-s USE_WEBGL2=1"
     "SHELL:-s USE_GLFW=3"
     "SHELL:-s FULL_ES3=1"
-    "SHELL:--preload-file ../data"
+#    "SHELL:--preload-file ../data"
 )
 
 set(RELEASE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/www/)
