@@ -102,7 +102,7 @@ void loop()
 
 		std::string version = std::to_string(BUILD_NUMBER);
 		version += " ";
-		version += BUILD_NUMBER;
+		version += BUILD_VERSION;
 		ImGui::Text("%s", version.c_str());
 
 		if (ImGui::Button("Open socket")) {
