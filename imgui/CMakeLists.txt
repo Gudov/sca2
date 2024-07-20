@@ -65,4 +65,5 @@ set_target_properties(
 
   PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY_RELEASE ${RELEASE_DIR}
+    OUTPUT_NAME "imgui.js"
 )
