@@ -5,10 +5,11 @@ set_property(GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER "CMake")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 project(
-  SCA
+  sca
   VERSION 2.0.0
   DESCRIPTION "STALCRAFT Auction data visualized"
   LANGUAGES CXX
 )
 
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/imgui/)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/server/)
