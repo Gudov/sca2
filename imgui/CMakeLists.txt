@@ -55,7 +55,7 @@ target_link_options(
     "SHELL:-s USE_WEBGL2=1"
     "SHELL:-s USE_GLFW=3"
     "SHELL:-s FULL_ES3=1"
-  # "SHELL:--preload-file ../data"
+    # "SHELL:--preload-file ../data"
 )
 
 set(RELEASE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/www/)

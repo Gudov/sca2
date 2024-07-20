@@ -5,9 +5,9 @@ set_property(GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER "CMake")
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 project(
-  imgui
-  VERSION 0.1.0
-  DESCRIPTION "Dear ImGui running in the browser"
+  SCA
+  VERSION 2.0.0
+  DESCRIPTION "STALCRAFT Auction data visualized"
   LANGUAGES CXX
 )
 
