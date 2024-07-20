@@ -345,7 +345,8 @@ void ImGui_ImplGlfw_ScrollCallback(GLFWwindow* window, double xoffset, double yo
 
 #ifdef EMSCRIPTEN_USE_EMBEDDED_GLFW3
     // Ignore GLFW events: will be processed in ImGui_ImplEmscripten_WheelCallback().
-    return;
+    // gudov# embeded dont work, i dont have enoth will to debug this
+    //return;
 #endif
 
     ImGuiIO& io = ImGui::GetIO();
