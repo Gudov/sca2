@@ -18,69 +18,68 @@ project(
 
 #======================[Target Description]====================== #
 
-set(TARGET_NAME ${PROJECT_NAME})
-add_executable(${TARGET_NAME})
+add_executable(imgui)
 
 file(GLOB_RECURSE SOURCES
-    ${CMAKE_CURRENT_SOURCE_DIR}/*.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/*.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp
 
-    ${CMAKE_CURRENT_SOURCE_DIR}/*.h
-    ${CMAKE_CURRENT_SOURCE_DIR}/*.hpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/*.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/*.hpp
 
-    imgui/backends/imgui_impl_glfw.cpp
-    imgui/backends/imgui_impl_opengl3.cpp
-    imgui/imgui.cpp
-    imgui/imgui_draw.cpp
-    imgui/imgui_demo.cpp
-    imgui/imgui_widgets.cpp
-    imgui/imgui_tables.cpp
+  imgui/backends/imgui_impl_glfw.cpp
+  imgui/backends/imgui_impl_opengl3.cpp
+  imgui/imgui.cpp
+  imgui/imgui_draw.cpp
+  imgui/imgui_demo.cpp
+  imgui/imgui_widgets.cpp
+  imgui/imgui_tables.cpp
 )
 
 target_compile_features(
-${TARGET_NAME}
+  imgui
   PRIVATE
     cxx_std_23
 )
 
 target_include_directories(
-    ${TARGET_NAME}
-    PRIVATE
-        src/
-        imgui
-        imgui/backends
+  imgui
+  PRIVATE
+    src/
+    imgui
+    imgui/backends
 )
 
 target_sources(
-  ${TARGET_NAME}
+  imgui
 
   PRIVATE
     ${SOURCES}
 )
 
 target_link_libraries(
-    ${TARGET_NAME}
+  imgui
 
-    PRIVATE
-      GL
-      websocket.js
+  PRIVATE
+    GL
+    websocket.js
 )
 
 target_link_options(
-    ${TARGET_NAME}
+  imgui
 
-    PRIVATE
-      "SHELL:-s USE_WEBGL2=1"
-      "SHELL:-s USE_GLFW=3"
-      "SHELL:-s FULL_ES3=1"
-      "SHELL:--preload-file ../data"
+  PRIVATE
+    "SHELL:-s USE_WEBGL2=1"
+    "SHELL:-s USE_GLFW=3"
+    "SHELL:-s FULL_ES3=1"
+    "SHELL:--preload-file ../data"
 )
 
 set(RELEASE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/www/)
 
 set_target_properties(
-    ${TARGET_NAME}
+  imgui
 
-    PROPERTIES
-        RUNTIME_OUTPUT_DIRECTORY_RELEASE ${RELEASE_DIR}
+  PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE ${RELEASE_DIR}
 )
