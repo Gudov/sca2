@@ -4,6 +4,8 @@
 #include <sstream>
 #include <cereal/cereal.hpp>
 #include <cereal/archives/json.hpp>
+#include <cstdlib>
+#include <unordered_map>
 
 #include <filesystem>
 #include <fstream>
@@ -38,6 +40,55 @@ using WsServer = SimpleWeb::SocketServer<SimpleWeb::WS>;
 
 constexpr int port = 8001;
 
+[[nodiscard]] std::filesystem::path getExecutablePath() noexcept {
+	std::error_code ec;
+	auto path = std::filesystem::read_symlink("/proc/self/exe", ec);
+	if (ec)
+		return "";
+	return path.parent_path();
+}
+
+[[nodiscard]] std::unordered_map<std::string, std::string> parseDatabase(const std::filesystem::path& path) {
+	std::unordered_map<std::string, std::string> map;
+
+	if (std::filesystem::is_directory(path)) {
+		for (const auto& entry: std::filesystem::directory_iterator(path)) {
+			if (entry.path().string().find("_variants") != std::string::npos)
+				continue;
+
+			auto subMap = parseDatabase(entry.path());
+			map.insert(subMap.begin(), subMap.end());
+		}
+	} else if (path.extension() == ".json") {
+		auto j = nlohmann::json::parse(std::ifstream(path));
+
+		std::string id = path.stem().string();
+		std::string name = j["name"]["lines"]["ru"];
+		map[id] = name;
+	}
+
+	return map;
+}
+
+[[nodiscard]] std::filesystem::path getItemDB() {
+	const std::filesystem::path db_path = getExecutablePath() / "db";
+
+	if (!std::filesystem::exists(db_path)) {
+		std::string command = "git clone https://github.com/EXBO-Studio/stalcraft-database/ " + db_path.string();
+		int result = std::system(command.c_str());
+
+		if (result != 0)
+			throw std::runtime_error("Failed to clone the repository. Error code: " + std::to_string(result));
+	} else {
+		std::string command = "cd " + db_path.string() + " && git pull";
+		int result = std::system(command.c_str());
+
+		if (result != 0)
+			throw std::runtime_error("Failed to update the repository. Error code: " + std::to_string(result));
+	}
+	return db_path;
+}
+
 void sendResponse(msg::Response&& response, std::shared_ptr<WsServer::Connection>& connection) {
 	std::stringstream ss;
 	{
@@ -69,8 +120,7 @@ void processRequest(msg::Request&& request, std::shared_ptr<WsServer::Connection
 		[&](msg::RequestItems& r) {
 			sendResponse(
 			  {msg::ResponseItems{
-				.items
-				= {{"item_1_key", "item_1_value"}, {"item_2_key", "item_2_value"}, {"item_3_key", "item_3_value"}},
+				.items = parseDatabase(getItemDB() / "ru" / "items"),
 				.alerts = {{"item_1_key", {true, 10}}, {"item_2_key", {false, 20}}}
 			  }},
 			  connection
@@ -93,10 +143,14 @@ void processRequest(msg::Request&& request, std::shared_ptr<WsServer::Connection
 	);
 }
 
+template<typename T>
+void mapToJson(const std::unordered_map<T, T>& map, const std::filesystem::path& output_path) {
+	std::ofstream(output_path) << nlohmann::json(map).dump(4);
+}
+
 int main() {
 	WsServer server;
 	server.config.port = port;
-
 	auto& echo = server.endpoint["^/echo/?$"];
 	echo.on_message
 	  = [](std::shared_ptr<WsServer::Connection> connection, std::shared_ptr<WsServer::InMessage> in_message) {
@@ -106,8 +160,8 @@ int main() {
 			connection->send(out_message, [](const SimpleWeb::error_code& ec) {
 				if (ec) {
 					std::cout << "Server: Error sending message. " <<
-					  // See http://www.boost.org/doc/libs/1_55_0/doc/html/boost_asio/reference.html, Error Codes for
-					  // error code meanings
+					  // See http://www.boost.org/doc/libs/1_55_0/doc/html/boost_asio/reference.html, Error
+					  // Codes for error code meanings
 					  "Error: " << ec << ", error message: " << ec.message() << std::endl;
 				}
 			});
