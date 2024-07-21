@@ -26,6 +26,7 @@
 #include "ws.hpp"
 #include "imgui_emc.hpp"
 #include "ui_main.hpp"
+#include "notify.hpp"
 
 template<class... Ts>
 struct overloaded : Ts... {
@@ -52,6 +53,9 @@ void processResponse(msg::Response&& response) {
 				printf("recieve items: %lu\n", items.items.size());
 				app::items = std::move(items.items);
 				app::alerts = std::move(items.alerts);
+			},
+			[](msg::Notify& notify) {
+				send_notify(notify);
 			}
 		},
 		response.response
@@ -104,7 +108,6 @@ void loop() {
 void init() {
 	init_gl();
 	init_imgui();
-	//connect_to_ws("ws://gudov.info:8001/api");
 }
 
 void quit() { glfwTerminate(); }

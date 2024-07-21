@@ -44,6 +44,10 @@ EM_JS(void, notify, (
 
 }
 
+void send_notify(const msg::Notify &notify) {
+    send_notify(notify.label, notify.body, notify.clip);
+}
+
 void send_notify(const std::string &title, const std::string &body, const std::string &clip) {
     notify(title.c_str(), title.size(), body.c_str(), body.size(), clip.c_str(), clip.size());
 }
