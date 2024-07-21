@@ -2,7 +2,7 @@ AlignConsecutiveBitFields:
   Enabled: true
   AcrossEmptyLines: false
   AcrossComments: false
-BreakAfterAttributes: Always
+BreakAfterAttributes: Never
 BracedInitializerIndentWidth: 2
 BraceWrapping:
   SplitEmptyNamespace: true

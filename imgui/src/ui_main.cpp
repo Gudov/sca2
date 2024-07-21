@@ -45,25 +45,29 @@ void CreateNewView(const ViewType& type) {
 	const auto& position = ImVec2(posDistX(gen), posDistY(gen));
 
 	switch (type) {
-		case ViewType::Empty: {
-			createView<::View>(position, ImVec2(350, 350), "");
-			break;
-		}
+		case ViewType::Empty:
+			{
+				createView<::View>(position, ImVec2(350, 350), "");
+				break;
+			}
 
-		case ViewType::ItemList: {
-			createView<ItemListView>(position, ImVec2(300, 350), "Item list");
-			break;
-		}
+		case ViewType::ItemList:
+			{
+				createView<ItemListView>(position, ImVec2(300, 350), "Item list");
+				break;
+			}
 
-		case ViewType::AlertTable: {
-			createView<AlertTableView>(position, ImVec2(600, 350), "Table of alerts");
-			break;
-		}
+		case ViewType::AlertTable:
+			{
+				createView<AlertTableView>(position, ImVec2(600, 350), "Table of alerts");
+				break;
+			}
 
-		case ViewType::History: {
-			createView<HistoryView>(position, ImVec2(600, 350), "Price history");
-			break;
-		}
+		case ViewType::History:
+			{
+				createView<HistoryView>(position, ImVec2(600, 350), "Price history");
+				break;
+			}
 	}
 }
 
@@ -71,21 +75,15 @@ void UpdateViews() {
 	// Update all views
 	std::vector<View*> windows;
 	windows.reserve(views.size());
-	for (const auto& window : views) {
+	for (const auto& window: views)
 		windows.emplace_back(std::move(window.get()));
-	}
 
-	std::ranges::sort(windows, [](const View* w1, const View* w2) -> bool {
-		return w1->lastClick > w2->lastClick;
-	});
+	std::ranges::sort(windows, [](const View* w1, const View* w2) -> bool { return w1->lastClick > w2->lastClick; });
 
-	for (auto const& window : windows) {
+	for (const auto& window: windows)
 		window->Update();
-	}
 
-	auto subrange = std::ranges::remove_if(views, [](const auto& view) {
-		return !view->isOpen;
-	});
+	auto subrange = std::ranges::remove_if(views, [](const auto& view) { return !view->isOpen; });
 	views.erase(subrange.begin(), subrange.end());
 }
 
@@ -96,14 +94,10 @@ void draw_ui() {
 	ImGui::SetNextWindowSize(viewport->Size);
 	ImGui::SetNextWindowViewport(viewport->ID);
 
-	ImGuiWindowFlags windowFlags =
-		ImGuiWindowFlags_NoBackground |
-		ImGuiWindowFlags_MenuBar |
-		ImGuiWindowFlags_NoDecoration |
-		ImGuiWindowFlags_NoDocking |
-		ImGuiWindowFlags_NoResize |
-		ImGuiWindowFlags_NoMove |
-		ImGuiWindowFlags_NoBringToFrontOnFocus;
+	ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_MenuBar
+																 | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoDocking
+																 | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove
+																 | ImGuiWindowFlags_NoBringToFrontOnFocus;
 
 	if (bool open = true; !ImGui::Begin("Main ", &open, windowFlags)) {
 		ImGui::End();
@@ -115,48 +109,44 @@ void draw_ui() {
 	if (ImGui::BeginMenuBar()) {
 		if (ImGui::BeginMenu("Create")) {
 			using enum ViewType;
-			if (ImGui::MenuItem("Item list")) {
+			if (ImGui::MenuItem("Item list"))
 				CreateNewView(ItemList);
-			}
 
-			if (ImGui::MenuItem("Alert list")) {
+			if (ImGui::MenuItem("Alert list"))
 				CreateNewView(AlertTable);
-			}
 			ImGui::EndMenu();
 		}
 
 		if (ImGui::BeginMenu("Edit")) {
-			if (ImGui::MenuItem("Preferences")) {
+			if (ImGui::MenuItem("Preferences"))
 				prefsOpen = true;
-			}
 			ImGui::EndMenu();
 		}
 
-        ImGui::Text("| client: %d %s |", BUILD_NUMBER, BUILD_VERSION);
-	    ImGui::Text("server: %d %s", app::server_version.first, BUILD_VERSION);
+		ImGui::Text("| client: %d %s |", BUILD_NUMBER, BUILD_VERSION);
+		ImGui::Text("server: %d %s", app::server_version.first, BUILD_VERSION);
 
 		ImGui::EndMenuBar();
 	}
 
-	if (prefsOpen) {
+	if (prefsOpen)
 		ImGui::OpenPopup("Preferences");
-	}
 
 	if (ImGui::BeginPopupModal("Preferences")) {
 		/*static int pollRateSec = 2;//std::chrono::duration_cast<std::chrono::seconds>(app->settings.pollRate).count();
-        ImGui::Text("Auction polling rate (seconds)");
-        ImGui::InputInt("##pollrate", &pollRateSec);
+				ImGui::Text("Auction polling rate (seconds)");
+				ImGui::InputInt("##pollrate", &pollRateSec);
 
-        if (ImGui::Button("OK")) {
-            //app->settings.pollRate = std::chrono::seconds(pollRateSec);
-            ImGui::CloseCurrentPopup();
-        }
+				if (ImGui::Button("OK")) {
+						//app->settings.pollRate = std::chrono::seconds(pollRateSec);
+						ImGui::CloseCurrentPopup();
+				}
 
-        ImGui::SameLine();
+				ImGui::SameLine();
 
-        if (ImGui::Button("Cancel")) {
-            ImGui::CloseCurrentPopup();
-        }*/
+				if (ImGui::Button("Cancel")) {
+						ImGui::CloseCurrentPopup();
+				}*/
 		ImGui::EndPopup();
 	}
 
@@ -178,7 +168,11 @@ void draw_ui() {
 			msg::Request request{msg::RequestPing{"ping"}};
 			sendRequest(std::move(request));
 		}
-		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+		ImGui::Text(
+			"Application average %.3f ms/frame (%.1f FPS)",
+			1000.0f / ImGui::GetIO().Framerate,
+			ImGui::GetIO().Framerate
+		);
 		ImGui::End();
 	}
 }

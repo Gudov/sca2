@@ -7,7 +7,7 @@
 #include "imgui.h"
 
 #ifndef __EMSCRIPTEN__
-	#define __EMSCRIPTEN__
+#define __EMSCRIPTEN__
 #endif
 
 #include <emscripten.h>
@@ -28,26 +28,27 @@
 
 template<class... Ts>
 struct overloaded : Ts... {
-	using Ts::operator()...;
+		using Ts::operator()...;
 };
 template<class... Ts>
 overloaded(Ts...) -> overloaded<Ts...>;
 
 void processResponse(msg::Response&& response) {
-	std::visit(overloaded{
-		[](msg::ResponsePing& ping) {
-			printf("recive response for ping %s\n", ping.str.c_str());
+	std::visit(
+		overloaded{
+			[](msg::ResponsePing& ping) { printf("recive response for ping %s\n", ping.str.c_str()); },
+			[](msg::Version& ver) {
+				app::server_version.first = ver.build_number;
+				app::server_version.second = ver.version;
+			},
+			[](msg::ResponseItems& items) {
+				printf("recieve items: %lu\n", items.items.size());
+				app::items = std::move(items.items);
+				app::alerts = std::move(items.alerts);
+			}
 		},
-		[](msg::Version& ver) {
-			app::server_version.first = ver.build_number;
-			app::server_version.second = ver.version;
-		},
-		[](msg::ResponseItems &items) {
-			printf("recieve items: %lu\n", items.items.size());
-			app::items = std::move(items.items);
-			app::alerts = std::move(items.alerts);
-		}},
-	response.response);
+		response.response
+	);
 }
 
 void processResponses() {
@@ -90,9 +91,7 @@ void init() {
 	connect_to_ws("ws://127.0.0.1:8001/api");
 }
 
-void quit() {
-	glfwTerminate();
-}
+void quit() { glfwTerminate(); }
 
 extern "C" int main(int argc, char** argv) {
 	init();

@@ -18,19 +18,21 @@ EM_BOOL onopen(int eventType, const EmscriptenWebSocketOpenEvent* websocketEvent
 	ws_connected = true;
 	return EM_TRUE;
 }
+
 EM_BOOL onerror(int eventType, const EmscriptenWebSocketErrorEvent* websocketEvent, void* userData) {
 	puts("ws: onerror");
 	return EM_TRUE;
 }
+
 EM_BOOL onclose(int eventType, const EmscriptenWebSocketCloseEvent* websocketEvent, void* userData) {
 	puts("ws: onclose");
 	return EM_TRUE;
 }
+
 EM_BOOL onmessage(int eventType, const EmscriptenWebSocketMessageEvent* event, void* userData) {
 	std::string message((const char*)event->data, (size_t)event->numBytes);
-	if (print_responses) {
+	if (print_responses)
 		printf("message: %s\n", message.c_str());
-	}
 	{
 		std::lock_guard guard(ws_queue_mutex);
 		ws_queue.push(message);
@@ -45,17 +47,13 @@ void sendRequest(msg::Request&& request) {
 		archive(request);
 	}
 	std::string str = ss.str();
-	if (print_requests) {
+	if (print_requests)
 		printf("request: %s\n", str.c_str());
-	}
 	emscripten_websocket_send_binary(ws, (void*)str.c_str(), str.size());
 }
 
 void connect_to_ws(const std::string& url) {
-	EmscriptenWebSocketCreateAttributes ws_attrs = {
-		url.c_str(),
-		NULL,
-		EM_TRUE};
+	EmscriptenWebSocketCreateAttributes ws_attrs = {url.c_str(), NULL, EM_TRUE};
 
 	ws = emscripten_websocket_new(&ws_attrs);
 	emscripten_websocket_set_onopen_callback(ws, NULL, onopen);
@@ -64,6 +62,4 @@ void connect_to_ws(const std::string& url) {
 	emscripten_websocket_set_onmessage_callback(ws, NULL, onmessage);
 }
 
-bool is_connected() {
-	return ws_connected;
-}
+bool is_connected() { return ws_connected; }
