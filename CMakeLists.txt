@@ -11,12 +11,12 @@ project(
   LANGUAGES CXX
 )
 
-add_custom_target(T1 DEPENDS t1.txt)
-add_custom_target(default ALL DEPENDS t1.txt)
+add_custom_target(version DEPENDS version.hpp)
+add_custom_target(default ALL DEPENDS version.hpp)
 
 add_custom_command(
   COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/version sca ${CMAKE_CURRENT_SOURCE_DIR}/shared/version.hpp
-  OUTPUT t1.txt
+  OUTPUT version.hpp
 )
 
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/imgui/)
