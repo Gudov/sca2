@@ -1,11 +1,13 @@
 #include "imgui_emc.hpp"
 #include "implot/implot.h"
 
+#include <cstddef>
 #include <stdio.h>
 #include <string>
 
 #include <emscripten.h>
 #include <emscripten/websocket.h>
+#include <vector>
 
 #define GLFW_INCLUDE_ES3
 #include <GLES3/gl3.h>
@@ -177,6 +179,9 @@ void StyleColorsApp() {
 	ImPlot::GetStyle().Colormap = ImPlot::AddColormap("Dracula", Dracula, 10);
 }
 
+#define ICON_MIN_FA 0xf000
+#define ICON_MAX_FA 0xf8d9
+
 int init_imgui() {
 	// Setup Dear ImGui binding
 	IMGUI_CHECKVERSION();
@@ -201,13 +206,22 @@ int init_imgui() {
 	fontConfig.FontDataOwnedByAtlas = false;
 
 	ImFontConfig iconConfig;
-	iconConfig.MergeMode = true;
-	iconConfig.PixelSnapH = true;
-	iconConfig.GlyphMinAdvanceX = 14.0f;
-	iconConfig.GlyphOffset = ImVec2(0, 0);
 	iconConfig.OversampleH = 1;
 	iconConfig.OversampleV = 1;
-	iconConfig.FontDataOwnedByAtlas = false;
+	iconConfig.PixelSnapH = 1;
+
+	const std::string font = "SauceCodeProNerdFont-Regular.ttf";
+	static const ImWchar ranges[] = {
+		0x0020, 0x00FF, // Basic Latin + Latin Supplement
+		0x0400, 0x044F, // Cyrillic
+		ICON_MIN_FA, ICON_MAX_FA,
+		0,
+	};
+	
+	io.Fonts->AddFontFromFileTTF(font.c_str(), 15.0f, &iconConfig, ranges);
+
+	io.Fonts->Build();
+	io.Fonts->AddFontDefault();
 
 	return 0;
 }
@@ -227,6 +241,12 @@ void begin_draw() {
 	ImGui_ImplOpenGL3_NewFrame();
 	ImGui_ImplGlfw_NewFrame();
 	ImGui::NewFrame();
+
+	static bool show_demo_window = true;
+	if (show_demo_window) {
+		ImGui::SetNextWindowPos(ImVec2(650, 20), ImGuiCond_FirstUseEver); // Normally user code doesn't need/want to call this because positions are saved in .ini file anyway. Here we just want to make the demo initial state a bit more friendly!
+		ImGui::ShowDemoWindow(&show_demo_window);
+	}
 }
 
 void end_draw() {

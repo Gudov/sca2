@@ -2574,6 +2574,7 @@ ImFont* ImFontAtlas::AddFontFromFileTTF(const char* filename, float size_pixels,
     if (!data)
     {
         IM_ASSERT_USER_ERROR(0, "Could not load font file!");
+        printf("Could not load font file! %s\n", filename);
         return NULL;
     }
     ImFontConfig font_cfg = font_cfg_template ? *font_cfg_template : ImFontConfig();

@@ -1,3 +1,3 @@
 inline const bool debug = true;
-inline const bool print_requests = false;
-inline const bool print_responses = false;
+inline const bool print_requests = true;
+inline const bool print_responses = true;
