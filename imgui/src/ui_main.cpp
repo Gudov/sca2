@@ -3,6 +3,9 @@
 #include <algorithm>
 #include <string>
 #include <random>
+#include <fstream>
+
+#include <emscripten.h>
 
 #include "app.hpp"
 #include "imgui.h"
@@ -16,6 +19,7 @@
 #include "views/alert_table_view.hpp"
 #include "views/history_view.hpp"
 #include "views/item_list_view.hpp"
+#include "notify.hpp"
 
 enum class ViewType {
 	Empty,
@@ -95,9 +99,9 @@ void draw_ui() {
 	ImGui::SetNextWindowViewport(viewport->ID);
 
 	ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_MenuBar
-																 | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoDocking
-																 | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove
-																 | ImGuiWindowFlags_NoBringToFrontOnFocus;
+								   | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoDocking
+								   | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove
+								   | ImGuiWindowFlags_NoBringToFrontOnFocus;
 
 	if (bool open = true; !ImGui::Begin("Main ", &open, windowFlags)) {
 		ImGui::End();
@@ -121,6 +125,10 @@ void draw_ui() {
 			if (ImGui::MenuItem("Preferences"))
 				prefsOpen = true;
 			ImGui::EndMenu();
+		}
+
+		if (ImGui::Button("Notify")) {
+			send_notify("test notify", "test body", "test clip");
 		}
 
 		ImGui::Text("| client: %d %s |", BUILD_NUMBER, BUILD_VERSION);
@@ -169,9 +177,9 @@ void draw_ui() {
 			sendRequest(std::move(request));
 		}
 		ImGui::Text(
-			"Application average %.3f ms/frame (%.1f FPS)",
-			1000.0f / ImGui::GetIO().Framerate,
-			ImGui::GetIO().Framerate
+		  "Application average %.3f ms/frame (%.1f FPS)",
+		  1000.0f / ImGui::GetIO().Framerate,
+		  ImGui::GetIO().Framerate
 		);
 		ImGui::End();
 	}

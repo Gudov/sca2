@@ -1,6 +1,7 @@
 #include <sstream>
 #include <stdio.h>
 #include <string>
+#include <vector>
 
 #include "app.hpp"
 #include "config.hpp"
@@ -32,6 +33,12 @@ struct overloaded : Ts... {
 };
 template<class... Ts>
 overloaded(Ts...) -> overloaded<Ts...>;
+
+static const std::vector<std::string> ws_urls = {
+	"ws://gudov.info:8001/api",
+	"ws://127.0.0.1:8001/api",
+	"ws://10.0.0.12:8001/api"
+};
 
 void processResponse(msg::Response&& response) {
 	std::visit(
@@ -75,11 +82,20 @@ void loop() {
 	if (net_init) {
 		draw_ui();
 	} else {
-		ImGui::Text("connecting...");
-		if (is_connected()) {
+		static size_t url_id = 0;
+		ImGui::Text("connecting to %s", ws_urls[url_id].c_str());
+		auto ws_status = get_ws_status();
+		if (ws_status == WsStatus::connected) {
 			sendRequest({msg::Version{.build_number = BUILD_NUMBER, .version = BUILD_VERSION}});
 			sendRequest({msg::RequestItems{}});
 			net_init = true;
+		} else if (ws_status == WsStatus::error) {
+			if (url_id < (ws_urls.size() - 1)) {
+				url_id++;
+			}
+			connect_to_ws(ws_urls[url_id]);
+		} else if (ws_status == WsStatus::closed) {
+			connect_to_ws(ws_urls[url_id]);
 		}
 	}
 	end_draw();
@@ -88,7 +104,7 @@ void loop() {
 void init() {
 	init_gl();
 	init_imgui();
-	connect_to_ws("ws://127.0.0.1:8001/api");
+	//connect_to_ws("ws://gudov.info:8001/api");
 }
 
 void quit() { glfwTerminate(); }
