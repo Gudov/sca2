@@ -86,7 +86,7 @@ SpaceBeforeInheritanceColon: true
 SpaceBeforeJsonColon: true
 SpaceBeforeParens: ControlStatements
 SpaceBeforeRangeBasedForLoopColon: false
-SpaceBeforeSquareBrackets: true
+SpaceBeforeSquareBrackets: false
 SpaceInEmptyBlock: false
 SpacesBeforeTrailingComments: 2
 SpacesInAngles: Never
