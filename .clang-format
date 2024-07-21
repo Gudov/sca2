@@ -41,7 +41,7 @@ EmptyLineAfterAccessModifier: Never
 EmptyLineBeforeAccessModifier: LogicalBlock
 FixNamespaceComments: true
 IncludeBlocks: Preserve
-IndentAccessModifiers: true
+IndentAccessModifiers: false
 IndentCaseBlocks: true
 IndentCaseLabels: true
 IndentExternBlock: Indent
@@ -70,7 +70,7 @@ RemoveSemicolon: true
 RequiresClausePosition: OwnLine
 RequiresExpressionIndentation: OuterScope
 SeparateDefinitionBlocks: Always
-ShortNamespaceLines: 1
+ShortNamespaceLines: 0
 SortIncludes: Never
 SortUsingDeclarations: Never
 SpaceAfterCStyleCast: false
