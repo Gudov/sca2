@@ -11,8 +11,10 @@ class AlertTableView : public View {
 		void RenderAlertControls();
 		void RenderItemTable(const ImVec2& wContentSize) const;
 
-		std::string query;
-		std::string itemName;
-		std::string itemID;
-		float threshold = 0;
+	static const size_t query_size = 1024;
+	char query_s[query_size];
+	std::string query;
+	std::string itemName;
+	std::string itemID;
+	int threshold = 0;
 };

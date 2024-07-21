@@ -67,8 +67,52 @@ struct RequestHistory {
 		}
 };
 
+struct RequestRemoveAlert {
+	std::string name;
+
+    template<class Archive>
+	void save(Archive& ar) const {
+		ar(name);
+	}
+
+	template<class Archive>
+	void load(Archive& ar) {
+		ar(name);
+	}
+};
+
+struct RequestSwitchAlert {
+	std::string name;
+	bool state;
+
+    template<class Archive>
+	void save(Archive& ar) const {
+		ar(name, state);
+	}
+
+	template<class Archive>
+	void load(Archive& ar) {
+		ar(name, state);
+	}
+};
+
+struct RequestAddAlert {
+	std::string name;
+	size_t price;
+
+	template<class Archive>
+	void save(Archive& ar) const {
+		ar(name, price);
+	}
+
+	template<class Archive>
+	void load(Archive& ar) {
+		ar(name, price);
+	}
+};
+
 struct Request {
-		std::variant<RequestPing, Version, RequestItems, RequestHistory> request;
+	std::variant<RequestPing, Version, RequestItems, RequestHistory, RequestRemoveAlert, RequestSwitchAlert, RequestAddAlert> request;
 
 		template<class Archive>
 		void save(Archive& ar) const {
