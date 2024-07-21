@@ -11,21 +11,23 @@ EMSCRIPTEN_WEBSOCKET_T ws;
 std::mutex ws_queue_mutex;
 std::queue<std::string> ws_queue;
 
-static bool ws_connected;
+static WsStatus ws_status = WsStatus::closed;
 
 EM_BOOL onopen(int eventType, const EmscriptenWebSocketOpenEvent* websocketEvent, void* userData) {
 	puts("ws: onopen");
-	ws_connected = true;
+	ws_status = WsStatus::connected;
 	return EM_TRUE;
 }
 
 EM_BOOL onerror(int eventType, const EmscriptenWebSocketErrorEvent* websocketEvent, void* userData) {
 	puts("ws: onerror");
+	ws_status = WsStatus::error;
 	return EM_TRUE;
 }
 
 EM_BOOL onclose(int eventType, const EmscriptenWebSocketCloseEvent* websocketEvent, void* userData) {
 	puts("ws: onclose");
+	ws_status = WsStatus::closed;
 	return EM_TRUE;
 }
 
@@ -55,6 +57,8 @@ void sendRequest(msg::Request&& request) {
 void connect_to_ws(const std::string& url) {
 	EmscriptenWebSocketCreateAttributes ws_attrs = {url.c_str(), NULL, EM_TRUE};
 
+	ws_status = WsStatus::connecting;
+
 	ws = emscripten_websocket_new(&ws_attrs);
 	emscripten_websocket_set_onopen_callback(ws, NULL, onopen);
 	emscripten_websocket_set_onerror_callback(ws, NULL, onerror);
@@ -62,4 +66,6 @@ void connect_to_ws(const std::string& url) {
 	emscripten_websocket_set_onmessage_callback(ws, NULL, onmessage);
 }
 
-bool is_connected() { return ws_connected; }
+WsStatus get_ws_status() {
+	return ws_status;
+}

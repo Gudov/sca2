@@ -11,3 +11,12 @@ extern std::queue<std::string> ws_queue;
 void sendRequest(msg::Request&& request);
 void connect_to_ws(const std::string& url);
 bool is_connected();
+
+enum WsStatus {
+    connecting,
+    connected,
+    error,
+    closed
+};
+
+WsStatus get_ws_status();

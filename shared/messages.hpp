@@ -177,8 +177,22 @@ struct ResponsePing {
 	}
 };
 
+struct Notify {
+	std::string label, body, clip;
+
+	template<class Archive>
+	void save(Archive& ar) const {
+		ar(label, body, clip);
+	}
+
+	template<class Archive>
+	void load(Archive& ar) {
+		ar(label, body, clip);
+	}
+};
+
 struct Response {
-	std::variant<ResponsePing, Version, ResponseItems> response;
+	std::variant<ResponsePing, Version, ResponseItems, Notify> response;
 
 	template<class Archive>
 	void save(Archive& ar) const {
