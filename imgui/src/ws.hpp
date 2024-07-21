@@ -8,6 +8,6 @@
 extern std::mutex ws_queue_mutex;
 extern std::queue<std::string> ws_queue;
 
-void sendRequest(msg::Request &&request);
-void connect_to_ws(const std::string &url);
+void sendRequest(msg::Request&& request);
+void connect_to_ws(const std::string& url);
 bool is_connected();

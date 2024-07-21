@@ -43,14 +43,12 @@ target_include_directories(
 
 target_sources(
   imgui
-
   PRIVATE
     ${SOURCES}
 )
 
 target_link_libraries(
   imgui
-
   PRIVATE
     GL
     websocket.js
@@ -58,7 +56,6 @@ target_link_libraries(
 
 target_link_options(
   imgui
-
   PRIVATE
     "SHELL:-s USE_WEBGL2=1"
     "SHELL:-s USE_GLFW=3"
@@ -70,7 +67,6 @@ set(RELEASE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/www/)
 
 set_target_properties(
   imgui
-
   PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY_RELEASE ${RELEASE_DIR}
     OUTPUT_NAME "imgui.js"
