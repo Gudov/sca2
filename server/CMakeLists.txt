@@ -1,10 +1,11 @@
 option(USE_STANDALONE_ASIO "set ON to use standalone Asio instead of Boost.Asio" ON)
 
-add_executable(server ws_examples.cpp)
+add_executable(server main.cpp)
 target_include_directories(
 	server
 	PRIVATE
 		${CMAKE_CURRENT_SOURCE_DIR}
+        ../shared
 )
 
 find_package(Threads REQUIRED)

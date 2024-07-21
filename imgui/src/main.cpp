@@ -1,5 +1,12 @@
+#include <sstream>
 #include <stdio.h>
 #include <string>
+#include <mutex>
+#include <queue>
+
+#ifndef __EMSCRIPTEN__
+#define __EMSCRIPTEN__
+#endif
 
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
@@ -13,9 +20,18 @@
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
-#include <iostream>
 
 #include <version.hpp>
+
+#include <messages.hpp>
+#include <cereal/archives/json.hpp>
+
+template<class... Ts>
+struct overloaded : Ts... { using Ts::operator()...; };
+template<class... Ts>
+overloaded(Ts...) -> overloaded<Ts...>;
+
+constexpr bool debug = true;
 
 GLFWwindow* g_window;
 ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
@@ -41,21 +57,30 @@ EM_JS(void, resizeCanvas, (), {
 	js_resizeCanvas();
 });
 
+std::mutex ws_queue_mutex;
+std::queue<std::string> ws_queue;
+
 EM_BOOL onopen(int eventType, const EmscriptenWebSocketOpenEvent *websocketEvent, void *userData) {
-    puts("onopen");
+    puts("ws: onopen");
     return EM_TRUE;
 }
 EM_BOOL onerror(int eventType, const EmscriptenWebSocketErrorEvent *websocketEvent, void *userData) {
-    puts("onerror");
+    puts("ws: onerror");
     return EM_TRUE;
 }
 EM_BOOL onclose(int eventType, const EmscriptenWebSocketCloseEvent *websocketEvent, void *userData) {
-    puts("onclose");
+    puts("ws: onclose");
     return EM_TRUE;
 }
 EM_BOOL onmessage(int eventType, const EmscriptenWebSocketMessageEvent *event, void *userData) {
 	std::string message((const char*)event->data, (size_t)event->numBytes);
-	printf("message: %s\n", message.c_str());
+	if (debug) {
+		printf("message: %s\n", message.c_str());
+	}
+	{
+		std::lock_guard guard(ws_queue_mutex);
+		ws_queue.push(message);
+	}
     return EM_TRUE;
 }
 
@@ -64,6 +89,43 @@ void on_size_changed()
 	glfwSetWindowSize(g_window, g_width, g_height);
 
 	ImGui::SetCurrentContext(ImGui::GetCurrentContext());
+}
+
+void sendRequest(Request &&request) {
+	std::stringstream ss;
+	{
+		cereal::JSONOutputArchive archive(ss);
+		archive(request);
+	}
+	std::string str = ss.str();
+	if (debug) {
+		printf("request: %s\n", str.c_str());
+	}
+	emscripten_websocket_send_binary(ws, (void*)str.c_str(), str.size());
+}
+
+void processResponse(Response &&response) {
+	std::visit(overloaded{
+		[](ResponsePing &ping) {
+			printf("recive response for ping %s\n", ping.str.c_str());
+		}
+	}, response.response);
+}
+
+void processResponses() {
+	std::lock_guard guard(ws_queue_mutex);
+	while (!ws_queue.empty()) {
+		std::stringstream ss;
+		ss << ws_queue.front();
+		ws_queue.pop();
+
+		Response response;
+		{
+			cereal::JSONInputArchive archive(ss);
+			archive(response);
+		}
+		processResponse(std::move(response));
+	}
 }
 
 void loop()
@@ -79,6 +141,8 @@ void loop()
 	}
 
 	glfwPollEvents();
+
+	processResponses();
 
 	ImGui_ImplOpenGL3_NewFrame();
 	ImGui_ImplGlfw_NewFrame();
@@ -118,8 +182,9 @@ void loop()
 		}
 
 		if (ImGui::Button("Send text")) {
-			std::string testStr = "test str";
-			emscripten_websocket_send_binary(ws, (void*)testStr.c_str(), testStr.size());
+			std::stringstream ss;
+			Request request{RequestPing{"ping"}};
+			sendRequest(std::move(request));
 		}
 
 		if (ImGui::Button("Close")) {
@@ -212,11 +277,25 @@ int init_imgui()
 	return 0;
 }
 
+void connect_to_ws(const std::string &url) {
+	EmscriptenWebSocketCreateAttributes ws_attrs = {
+		url.c_str(),
+		NULL,
+		EM_TRUE
+	};
+
+	ws = emscripten_websocket_new(&ws_attrs);
+	emscripten_websocket_set_onopen_callback(ws, NULL, onopen);
+	emscripten_websocket_set_onerror_callback(ws, NULL, onerror);
+	emscripten_websocket_set_onclose_callback(ws, NULL, onclose);
+	emscripten_websocket_set_onmessage_callback(ws, NULL, onmessage);
+}
 
 int init()
 {
   init_gl();
   init_imgui();
+  connect_to_ws("ws://127.0.0.1:8001/api");
   return 0;
 }
 
@@ -234,6 +313,7 @@ extern "C" int main(int argc, char** argv)
   if (init() != 0) return 1;
 
   #ifdef __EMSCRIPTEN__
+
   emscripten_set_main_loop(loop, 0, 1);
   #endif
 
