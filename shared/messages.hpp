@@ -11,66 +11,66 @@
 namespace msg {
 
 struct RequestPing {
-		std::string str;
+	std::string str;
 
-		template<class Archive>
-		void save(Archive& ar) const {
-			ar(str);
-		}
+	template<class Archive>
+	void save(Archive& ar) const {
+		ar(str);
+	}
 
-		template<class Archive>
-		void load(Archive& ar) {
-			ar(str);
-		}
+	template<class Archive>
+	void load(Archive& ar) {
+		ar(str);
+	}
 };
 
 struct Version {
-		int build_number;
-		std::string version;
+	int build_number;
+	std::string version;
 
-		template<class Archive>
-		void save(Archive& ar) const {
-			ar(build_number, version);
-		}
+	template<class Archive>
+	void save(Archive& ar) const {
+		ar(build_number, version);
+	}
 
-		template<class Archive>
-		void load(Archive& ar) {
-			ar(build_number, version);
-		}
+	template<class Archive>
+	void load(Archive& ar) {
+		ar(build_number, version);
+	}
 };
 
 struct RequestItems {
-		bool e;
+	bool e;
 
-		template<class Archive>
-		void save(Archive& ar) const {
-			ar(e);
-		}
+	template<class Archive>
+	void save(Archive& ar) const {
+		ar(e);
+	}
 
-		template<class Archive>
-		void load(Archive& ar) {
-			ar(e);
-		}
+	template<class Archive>
+	void load(Archive& ar) {
+		ar(e);
+	}
 };
 
 struct RequestHistory {
-		std::string name;
+	std::string name;
 
-		template<class Archive>
-		void save(Archive& ar) const {
-			ar(name);
-		}
+	template<class Archive>
+	void save(Archive& ar) const {
+		ar(name);
+	}
 
-		template<class Archive>
-		void load(Archive& ar) {
-			ar(name);
-		}
+	template<class Archive>
+	void load(Archive& ar) {
+		ar(name);
+	}
 };
 
 struct RequestRemoveAlert {
 	std::string name;
 
-    template<class Archive>
+	template<class Archive>
 	void save(Archive& ar) const {
 		ar(name);
 	}
@@ -85,7 +85,7 @@ struct RequestSwitchAlert {
 	std::string name;
 	bool state;
 
-    template<class Archive>
+	template<class Archive>
 	void save(Archive& ar) const {
 		ar(name, state);
 	}
@@ -112,75 +112,83 @@ struct RequestAddAlert {
 };
 
 struct Request {
-	std::variant<RequestPing, Version, RequestItems, RequestHistory, RequestRemoveAlert, RequestSwitchAlert, RequestAddAlert> request;
+	std::variant<
+	  RequestPing,
+	  Version,
+	  RequestItems,
+	  RequestHistory,
+	  RequestRemoveAlert,
+	  RequestSwitchAlert,
+	  RequestAddAlert>
+	  request;
 
-		template<class Archive>
-		void save(Archive& ar) const {
-			ar(request);
-		}
+	template<class Archive>
+	void save(Archive& ar) const {
+		ar(request);
+	}
 
-		template<class Archive>
-		void load(Archive& ar) {
-			ar(request);
-		}
+	template<class Archive>
+	void load(Archive& ar) {
+		ar(request);
+	}
 };
 
 struct Alert {
-		bool enabled;
-		size_t price;
+	bool enabled;
+	size_t price;
 
-		template<class Archive>
-		void save(Archive& ar) const {
-			ar(enabled, price);
-		}
+	template<class Archive>
+	void save(Archive& ar) const {
+		ar(enabled, price);
+	}
 
-		template<class Archive>
-		void load(Archive& ar) {
-			ar(enabled, price);
-		}
+	template<class Archive>
+	void load(Archive& ar) {
+		ar(enabled, price);
+	}
 };
 
 struct ResponseItems {
-		std::unordered_map<std::string, std::string> items;
-		std::unordered_map<std::string, Alert> alerts;
+	std::unordered_map<std::string, std::string> items;
+	std::unordered_map<std::string, Alert> alerts;
 
-		template<class Archive>
-		void save(Archive& ar) const {
-			ar(items, alerts);
-		}
+	template<class Archive>
+	void save(Archive& ar) const {
+		ar(items, alerts);
+	}
 
-		template<class Archive>
-		void load(Archive& ar) {
-			ar(items, alerts);
-		}
+	template<class Archive>
+	void load(Archive& ar) {
+		ar(items, alerts);
+	}
 };
 
 struct ResponsePing {
-		std::string str;
+	std::string str;
 
-		template<class Archive>
-		void save(Archive& ar) const {
-			ar(str);
-		}
+	template<class Archive>
+	void save(Archive& ar) const {
+		ar(str);
+	}
 
-		template<class Archive>
-		void load(Archive& ar) {
-			ar(str);
-		}
+	template<class Archive>
+	void load(Archive& ar) {
+		ar(str);
+	}
 };
 
 struct Response {
-		std::variant<ResponsePing, Version, ResponseItems> response;
+	std::variant<ResponsePing, Version, ResponseItems> response;
 
-		template<class Archive>
-		void save(Archive& ar) const {
-			ar(response);
-		}
+	template<class Archive>
+	void save(Archive& ar) const {
+		ar(response);
+	}
 
-		template<class Archive>
-		void load(Archive& ar) {
-			ar(response);
-		}
+	template<class Archive>
+	void load(Archive& ar) {
+		ar(response);
+	}
 };
 
-}	 // namespace msg
+}  // namespace msg
