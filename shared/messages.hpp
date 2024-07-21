@@ -3,7 +3,9 @@
 #include <string>
 #include <cereal/cereal.hpp>
 #include <cereal/types/variant.hpp>
+#include <cereal/types/unordered_map.hpp>
 #include <cereal/archives/binary.hpp>
+#include <unordered_map>
 #include <variant>
 
 namespace msg {
@@ -37,8 +39,36 @@ struct Version {
 	}
 };
 
+struct RequestItems {
+    bool e;
+
+    template<class Archive>
+	void save(Archive& ar) const {
+		ar(e);
+	}
+
+	template<class Archive>
+	void load(Archive& ar) {
+		ar(e);
+	}
+};
+
+struct RequestHistory {
+    std::string name;
+
+    template<class Archive>
+	void save(Archive& ar) const {
+		ar(name);
+	}
+
+	template<class Archive>
+	void load(Archive& ar) {
+		ar(name);
+	}
+};
+
 struct Request {
-	std::variant<RequestPing, Version> request;
+	std::variant<RequestPing, Version, RequestItems, RequestHistory> request;
 
 	template<class Archive>
 	void save(Archive& ar) const {
@@ -48,6 +78,36 @@ struct Request {
 	template<class Archive>
 	void load(Archive& ar) {
 		ar(request);
+	}
+};
+
+struct Alert {
+    bool enabled;
+    size_t price;
+
+    template<class Archive>
+	void save(Archive& ar) const {
+		ar(enabled, price);
+	}
+
+	template<class Archive>
+	void load(Archive& ar) {
+		ar(enabled, price);
+	}
+};
+
+struct ResponseItems {
+    std::unordered_map<std::string, std::string> items;
+    std::unordered_map<std::string, Alert> alerts;
+
+    template<class Archive>
+	void save(Archive& ar) const {
+		ar(items, alerts);
+	}
+
+	template<class Archive>
+	void load(Archive& ar) {
+		ar(items, alerts);
 	}
 };
 
@@ -66,7 +126,7 @@ struct ResponsePing {
 };
 
 struct Response {
-	std::variant<ResponsePing, Version> response;
+	std::variant<ResponsePing, Version, ResponseItems> response;
 
 	template<class Archive>
 	void save(Archive& ar) const {

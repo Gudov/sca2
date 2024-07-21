@@ -35,14 +35,19 @@ overloaded(Ts...) -> overloaded<Ts...>;
 
 void processResponse(msg::Response&& response) {
 	std::visit(overloaded{
-				   [](msg::ResponsePing& ping) {
-					   printf("recive response for ping %s\n", ping.str.c_str());
-				   },
-				   [](msg::Version& ver) {
-					   app::server_version.first = ver.build_number;
-					   app::server_version.second = ver.version;
-				   }},
-			   response.response);
+		[](msg::ResponsePing& ping) {
+			printf("recive response for ping %s\n", ping.str.c_str());
+		},
+		[](msg::Version& ver) {
+			app::server_version.first = ver.build_number;
+			app::server_version.second = ver.version;
+		},
+		[](msg::ResponseItems &items) {
+			printf("recieve items: %lu\n", items.items.size());
+			app::items = std::move(items.items);
+			app::alerts = std::move(items.alerts);
+		}},
+	response.response);
 }
 
 void processResponses() {
@@ -72,6 +77,7 @@ void loop() {
 		ImGui::Text("connecting...");
 		if (is_connected()) {
 			sendRequest({msg::Version{.build_number = BUILD_NUMBER, .version = BUILD_VERSION}});
+			sendRequest({msg::RequestItems{}});
 			net_init = true;
 		}
 	}

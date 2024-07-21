@@ -36,15 +36,31 @@ void sendResponse(msg::Response&& response, std::shared_ptr<WsServer::Connection
 
 void processRequest(msg::Request&& request, std::shared_ptr<WsServer::Connection>& connection) {
 	std::visit(overloaded{
-				   [&connection](msg::RequestPing& ping) {
-					   printf("recieve ping: %s\n", ping.str.c_str());
-					   sendResponse({msg::ResponsePing{.str = ping.str}}, connection);
-				   },
-				   [&connection](msg::Version& ver) {
-					   printf("client connected, version %d %s\n", ver.build_number, ver.version.c_str());
-					   sendResponse({msg::Version{.build_number = BUILD_NUMBER, .version = BUILD_VERSION}}, connection);
-				   }},
-			   request.request);
+        [&](msg::RequestPing& ping) {
+            printf("recieve ping: %s\n", ping.str.c_str());
+            sendResponse({msg::ResponsePing{.str = ping.str}}, connection);
+        },
+        [&](msg::Version& ver) {
+            printf("client connected, version %d %s\n", ver.build_number, ver.version.c_str());
+            sendResponse({msg::Version{.build_number = BUILD_NUMBER, .version = BUILD_VERSION}}, connection);
+        },
+        [&](msg::RequestItems &r) {
+            sendResponse({msg::ResponseItems{
+                .items={
+                    {"item_1_key", "item_1_value"},
+                    {"item_2_key", "item_2_value"},
+                    {"item_3_key", "item_3_value"}
+                },
+                .alerts={
+                    {"item_1_key", {true, 10}},
+                    {"item_2_key", {false, 20}}
+                }
+            }}, connection);
+        },
+        [&](msg::RequestHistory &r) {
+
+        }},
+    request.request);
 }
 
 int main() {
