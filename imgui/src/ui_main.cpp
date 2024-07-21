@@ -4,6 +4,7 @@
 #include <string>
 #include <random>
 
+#include "app.hpp"
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
@@ -133,6 +134,9 @@ void draw_ui() {
         ImGui::EndMenuBar();
     }
 
+    ImGui::Text("client: %d %s", BUILD_NUMBER, BUILD_VERSION);
+    ImGui::Text("server: %d %s", app::server_version.first, BUILD_VERSION);
+
     if (prefsOpen) {
         ImGui::OpenPopup("Preferences");
     }
@@ -170,7 +174,7 @@ void draw_ui() {
 		ImGui::Text("%s", version.c_str());
 		if (ImGui::Button("Send text")) {
 			std::stringstream ss;
-			Request request{RequestPing{"ping"}};
+			msg::Request request{msg::RequestPing{"ping"}};
 			sendRequest(std::move(request));
 		}
 		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);

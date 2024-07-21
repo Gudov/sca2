@@ -11,8 +11,11 @@ EMSCRIPTEN_WEBSOCKET_T ws;
 std::mutex ws_queue_mutex;
 std::queue<std::string> ws_queue;
 
+static bool ws_connected;
+
 EM_BOOL onopen(int eventType, const EmscriptenWebSocketOpenEvent *websocketEvent, void *userData) {
     puts("ws: onopen");
+    ws_connected = true;
     return EM_TRUE;
 }
 EM_BOOL onerror(int eventType, const EmscriptenWebSocketErrorEvent *websocketEvent, void *userData) {
@@ -35,7 +38,7 @@ EM_BOOL onmessage(int eventType, const EmscriptenWebSocketMessageEvent *event, v
     return EM_TRUE;
 }
 
-void sendRequest(Request &&request) {
+void sendRequest(msg::Request &&request) {
 	std::stringstream ss;
 	{
 		cereal::JSONOutputArchive archive(ss);
@@ -60,4 +63,8 @@ void connect_to_ws(const std::string &url) {
 	emscripten_websocket_set_onerror_callback(ws, NULL, onerror);
 	emscripten_websocket_set_onclose_callback(ws, NULL, onclose);
 	emscripten_websocket_set_onmessage_callback(ws, NULL, onmessage);
+}
+
+bool is_connected() {
+    return ws_connected;
 }

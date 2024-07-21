@@ -6,6 +6,8 @@
 #include <cereal/archives/binary.hpp>
 #include <variant>
 
+namespace msg {
+
 struct RequestPing {
     std::string str;
 
@@ -20,8 +22,23 @@ struct RequestPing {
     }
 };
 
+struct Version {
+    int build_number;
+    std::string version;
+
+    template <class Archive>
+    void save( Archive & ar ) const {
+        ar( build_number, version );
+    }
+
+    template <class Archive>
+    void load( Archive & ar ) {
+        ar( build_number, version );
+    }
+};
+
 struct Request {
-    std::variant<RequestPing> request;
+    std::variant<RequestPing, Version> request;
 
     template <class Archive>
     void save( Archive & ar ) const {
@@ -49,7 +66,7 @@ struct ResponsePing {
 };
 
 struct Response {
-    std::variant<ResponsePing> response;
+    std::variant<ResponsePing, Version> response;
 
     template <class Archive>
     void save( Archive & ar ) const {
@@ -62,3 +79,4 @@ struct Response {
     }
 };
 
+}
