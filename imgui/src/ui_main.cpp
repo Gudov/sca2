@@ -131,11 +131,12 @@ void draw_ui() {
 			}
 			ImGui::EndMenu();
 		}
+
+        ImGui::Text("| client: %d %s |", BUILD_NUMBER, BUILD_VERSION);
+	    ImGui::Text("server: %d %s", app::server_version.first, BUILD_VERSION);
+
 		ImGui::EndMenuBar();
 	}
-
-	ImGui::Text("client: %d %s", BUILD_NUMBER, BUILD_VERSION);
-	ImGui::Text("server: %d %s", app::server_version.first, BUILD_VERSION);
 
 	if (prefsOpen) {
 		ImGui::OpenPopup("Preferences");
