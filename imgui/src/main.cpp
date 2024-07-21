@@ -2,7 +2,9 @@
 #include <stdio.h>
 #include <string>
 
+#include "app.hpp"
 #include "config.hpp"
+#include "imgui.h"
 
 #ifndef __EMSCRIPTEN__
 #define __EMSCRIPTEN__
@@ -29,10 +31,14 @@ struct overloaded : Ts... { using Ts::operator()...; };
 template<class... Ts>
 overloaded(Ts...) -> overloaded<Ts...>;
 
-void processResponse(Response &&response) {
+void processResponse(msg::Response &&response) {
 	std::visit(overloaded{
-		[](ResponsePing &ping) {
+		[](msg::ResponsePing &ping) {
 			printf("recive response for ping %s\n", ping.str.c_str());
+		},
+		[](msg::Version &ver) {
+			app::server_version.first = ver.build_number;
+			app::server_version.second = ver.version;
 		}
 	}, response.response);
 }
@@ -44,7 +50,7 @@ void processResponses() {
 		ss << ws_queue.front();
 		ws_queue.pop();
 
-		Response response;
+		msg::Response response;
 		{
 			cereal::JSONInputArchive archive(ss);
 			archive(response);
@@ -54,10 +60,19 @@ void processResponses() {
 }
 
 void loop() {
+	static bool net_init = false;
 	processResponses();
 
 	begin_draw();
-	draw_ui();
+	if (net_init) {
+		draw_ui();
+	} else {
+		ImGui::Text("connecting...");
+		if (is_connected()) {
+			sendRequest({msg::Version{.build_number=BUILD_NUMBER,.version=BUILD_VERSION}});
+			net_init = true;
+		}
+	}
 	end_draw();
 }
 

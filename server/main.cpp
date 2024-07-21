@@ -4,6 +4,8 @@
 #include <cereal/archives/json.hpp>
 #include "messages.hpp"
 #include <future>
+#include <string>
+#include "version.hpp"
 
 template<class... Ts>
 struct overloaded : Ts... { using Ts::operator()...; };
@@ -14,7 +16,7 @@ using WsServer = SimpleWeb::SocketServer<SimpleWeb::WS>;
 
 constexpr int port = 8001;
 
-void sendResponse(Response &&response, std::shared_ptr<WsServer::Connection>& connection) {
+void sendResponse(msg::Response &&response, std::shared_ptr<WsServer::Connection>& connection) {
     std::stringstream ss;
 	{
 		cereal::JSONOutputArchive archive(ss);
@@ -30,11 +32,15 @@ void sendResponse(Response &&response, std::shared_ptr<WsServer::Connection>& co
     });
 }
 
-void processRequest(Request &&request, std::shared_ptr<WsServer::Connection>& connection) {
+void processRequest(msg::Request &&request, std::shared_ptr<WsServer::Connection>& connection) {
     std::visit(overloaded{
-        [&connection] (RequestPing &ping) {
+        [&connection] (msg::RequestPing &ping) {
             printf("recieve ping: %s\n", ping.str.c_str());
-            sendResponse({ResponsePing{.str=ping.str}}, connection);
+            sendResponse({msg::ResponsePing{.str=ping.str}}, connection);
+        },
+        [&connection] (msg::Version &ver) {
+            printf("client connected, version %d %s\n", ver.build_number, ver.version.c_str());
+            sendResponse({msg::Version{.build_number=BUILD_NUMBER,.version=BUILD_VERSION}}, connection);
         }
     }, request.request);
 }
@@ -61,7 +67,7 @@ int main() {
     api.on_message = [](std::shared_ptr<WsServer::Connection> connection, std::shared_ptr<WsServer::InMessage> in_message) {
         std::stringstream ss;
         ss << in_message->string();
-        Request request;
+        msg::Request request;
         {
             cereal::JSONInputArchive archive(ss);
             archive(request);
