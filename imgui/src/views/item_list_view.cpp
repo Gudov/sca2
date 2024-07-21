@@ -1,23 +1,23 @@
 #include "item_list_view.hpp"
 
 ItemListView::ItemListView(const bool& open, const ImVec2& pos, const ImVec2& size, const std::string& title)
-        : View(open, pos, size, title) {}
+  : View(open, pos, size, title) {}
 
 void ItemListView::Update() {
-    const auto& flags = ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoScrollbar;
-    if (ImGui::Begin(title.c_str(), &isOpen, flags)) {
-        View::updateSizePos();
+	const auto& flags = ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoScrollbar;
+	if (ImGui::Begin(title.c_str(), &isOpen, flags)) {
+		View::updateSizePos();
 
-        if (ImGui::IsWindowFocused()) {
-            lastClick = std::chrono::system_clock::now();
-        }
+		if (ImGui::IsWindowFocused()) {
+			lastClick = std::chrono::system_clock::now();
+		}
 
-        ImVec2 size = ImGui::GetContentRegionAvail();
-        ImGui::SameLine();
-        ImGui::InputTextWithHint(" ", "Enter item name...", query, query_size-1);
+		ImVec2 size = ImGui::GetContentRegionAvail();
+		ImGui::SameLine();
+		ImGui::InputTextWithHint(" ", "Enter item name...", query, query_size - 1);
 
-        if (ImGui::BeginChild("List", size, true)) {
-            /*for (const auto& [id, name] : app->itemDatabase) {
+		if (ImGui::BeginChild("List", size, true)) {
+			/*for (const auto& [id, name] : app->itemDatabase) {
                 if (contains(name, query)) {
                     bool hasAlert = app->alerts.contains(id);
                     if (hasAlert) {
@@ -33,8 +33,8 @@ void ItemListView::Update() {
                     }
                 }
             }*/
-        }
-        ImGui::EndChild();
-    }
-    ImGui::End();
+		}
+		ImGui::EndChild();
+	}
+	ImGui::End();
 };

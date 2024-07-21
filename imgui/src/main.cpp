@@ -7,7 +7,7 @@
 #include "imgui.h"
 
 #ifndef __EMSCRIPTEN__
-		#define __EMSCRIPTEN__
+	#define __EMSCRIPTEN__
 #endif
 
 #include <emscripten.h>
@@ -28,72 +28,72 @@
 
 template<class... Ts>
 struct overloaded : Ts... {
-		using Ts::operator()...;
+	using Ts::operator()...;
 };
 template<class... Ts>
 overloaded(Ts...) -> overloaded<Ts...>;
 
 void processResponse(msg::Response&& response) {
-		std::visit(overloaded{
-									 [](msg::ResponsePing& ping) {
-											 printf("recive response for ping %s\n", ping.str.c_str());
-									 },
-									 [](msg::Version& ver) {
-											 app::server_version.first = ver.build_number;
-											 app::server_version.second = ver.version;
-									 }},
-							 response.response);
+	std::visit(overloaded{
+				   [](msg::ResponsePing& ping) {
+					   printf("recive response for ping %s\n", ping.str.c_str());
+				   },
+				   [](msg::Version& ver) {
+					   app::server_version.first = ver.build_number;
+					   app::server_version.second = ver.version;
+				   }},
+			   response.response);
 }
 
 void processResponses() {
-		std::lock_guard guard(ws_queue_mutex);
-		while (!ws_queue.empty()) {
-				std::stringstream ss;
-				ss << ws_queue.front();
-				ws_queue.pop();
+	std::lock_guard guard(ws_queue_mutex);
+	while (!ws_queue.empty()) {
+		std::stringstream ss;
+		ss << ws_queue.front();
+		ws_queue.pop();
 
-				msg::Response response;
-				{
-						cereal::JSONInputArchive archive(ss);
-						archive(response);
-				}
-				processResponse(std::move(response));
+		msg::Response response;
+		{
+			cereal::JSONInputArchive archive(ss);
+			archive(response);
 		}
+		processResponse(std::move(response));
+	}
 }
 
 void loop() {
-		static bool net_init = false;
-		processResponses();
+	static bool net_init = false;
+	processResponses();
 
-		begin_draw();
-		if (net_init) {
-				draw_ui();
-		} else {
-				ImGui::Text("connecting...");
-				if (is_connected()) {
-						sendRequest({msg::Version{.build_number = BUILD_NUMBER, .version = BUILD_VERSION}});
-						net_init = true;
-				}
+	begin_draw();
+	if (net_init) {
+		draw_ui();
+	} else {
+		ImGui::Text("connecting...");
+		if (is_connected()) {
+			sendRequest({msg::Version{.build_number = BUILD_NUMBER, .version = BUILD_VERSION}});
+			net_init = true;
 		}
-		end_draw();
+	}
+	end_draw();
 }
 
 void init() {
-		init_gl();
-		init_imgui();
-		connect_to_ws("ws://127.0.0.1:8001/api");
+	init_gl();
+	init_imgui();
+	connect_to_ws("ws://127.0.0.1:8001/api");
 }
 
 void quit() {
-		glfwTerminate();
+	glfwTerminate();
 }
 
 extern "C" int main(int argc, char** argv) {
-		init();
+	init();
 
-		emscripten_set_main_loop(loop, 0, 1);
+	emscripten_set_main_loop(loop, 0, 1);
 
-		quit();
+	quit();
 
-		return 0;
+	return 0;
 }
