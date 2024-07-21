@@ -1,6 +1,8 @@
 #include "ui_main.hpp"
 
+#include <algorithm>
 #include <string>
+#include <random>
 
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
@@ -9,6 +11,82 @@
 #include "version.hpp"
 #include "messages.hpp"
 #include "ws.hpp"
+#include "views/view.hpp"
+#include "views/alert_table_view.hpp"
+#include "views/history_view.hpp"
+#include "views/item_list_view.hpp"
+
+enum class ViewType {
+    Empty,
+    ItemList,
+    AlertTable,
+    History
+};
+
+static std::vector<std::unique_ptr<View>> views;
+
+template<typename ViewClass>
+ViewClass* createView(const ImVec2& pos, const ImVec2& size, const std::string& title) {
+    static int viewCount = 0;
+    std::string idTitle = std::format("{}##{}", title, viewCount++);
+    std::unique_ptr<ViewClass> view = std::make_unique<ViewClass>(true, pos, size, idTitle);
+    views.emplace_back(std::move(view));
+    return (ViewClass*)views.back().get();
+}
+
+void CreateNewView(const ViewType& type) {
+    std::random_device rd;
+    std::mt19937 gen(rd());
+
+    std::uniform_int_distribution posDistX(0, 150);
+    std::uniform_int_distribution posDistY(25, 150);
+
+    const auto& position = ImVec2(posDistX(gen), posDistY(gen));
+
+    switch (type) {
+        case ViewType::Empty: {
+            createView<::View>(position, ImVec2(350, 350), "");
+            break;
+        }
+
+        case ViewType::ItemList: {
+            createView<ItemListView>(position, ImVec2(300, 350), "Item list");
+            break;
+        }
+
+        case ViewType::AlertTable: {
+            createView<AlertTableView>(position, ImVec2(600, 350), "Table of alerts");
+            break;
+        }
+
+        case ViewType::History: {
+            createView<HistoryView>(position, ImVec2(600, 350), "Price history");
+            break;
+        }
+    }
+}
+
+void UpdateViews() {
+    // Update all views
+    std::vector<View*> windows;
+    windows.reserve(views.size());
+    for (const auto& window : views) {
+        windows.emplace_back(std::move(window.get()));
+    }
+
+    std::ranges::sort(windows, [](const View* w1, const View* w2) -> bool {
+        return w1->lastClick > w2->lastClick;
+    });
+
+    for (auto const& window : windows) {
+        window->Update();
+    }
+
+    auto subrange = std::ranges::remove_if(views, [](const auto& view) {
+        return !view->isOpen;
+    });
+    views.erase(subrange.begin(), subrange.end());
+}
 
 void draw_ui() {
     auto viewport = ImGui::GetMainViewport();
@@ -35,13 +113,13 @@ void draw_ui() {
 
     if (ImGui::BeginMenuBar()) {
         if (ImGui::BeginMenu("Create")) {
-            //using enum ViewType;
+            using enum ViewType;
             if (ImGui::MenuItem("Item list")) {
-                //CreateNewView(ItemList);
+                CreateNewView(ItemList);
             }
 
             if (ImGui::MenuItem("Alert list")) {
-                //CreateNewView(AlertTable);
+                CreateNewView(AlertTable);
             }
             ImGui::EndMenu();
         }
@@ -80,7 +158,7 @@ void draw_ui() {
     ImGuiID dockspaceID = ImGui::GetID("Main");
     ImGuiDockNodeFlags dockspaceFlags = ImGuiDockNodeFlags_PassthruCentralNode;
     ImGui::DockSpace(dockspaceID, ImVec2(0.0f, 0.0f), dockspaceFlags);
-    //UpdateViews();
+    UpdateViews();
     ImGui::End();
 
 	{
