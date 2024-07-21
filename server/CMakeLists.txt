@@ -1,11 +1,35 @@
 option(USE_STANDALONE_ASIO "set ON to use standalone Asio instead of Boost.Asio" ON)
+option(BUILD_SHARED_LIBS "Build libraries as shared libraries" OFF)
 
-add_executable(server main.cpp)
+add_executable(server)
+
+file(GLOB_RECURSE SOURCES
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/*.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp
+
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/*.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/*.hpp
+)
+
 target_include_directories(
- server
- PRIVATE
+  server
+  PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}
-        ../shared
+   ./src
+  ../shared
+)
+
+target_sources(
+  server
+  PRIVATE
+  ${SOURCES}
+)
+
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/cpr)
+target_link_libraries(
+  server
+  PRIVATE
+  cpr::cpr
 )
 
 find_package(Threads REQUIRED)

@@ -1,15 +1,35 @@
-#include "websocket/server_ws.hpp"
+#include <nlohmann/json.hpp>
+#include <websocket/server_ws.hpp>
+
 #include <sstream>
 #include <cereal/cereal.hpp>
 #include <cereal/archives/json.hpp>
-#include "messages.hpp"
+
+#include <filesystem>
+#include <fstream>
 #include <future>
 #include <string>
+
+#include "messages.hpp"
 #include "version.hpp"
+
+class Config {
+  public:
+	std::chrono::system_clock::duration sc_api_poll_rate;
+	std::string sc_api_secret;
+	std::string sc_api_id;
+
+	void fromJson(const std::filesystem::path& path) {
+		auto config = nlohmann::json::parse(std::ifstream(path));
+		this->sc_api_poll_rate = std::chrono::seconds(config["sc_api_poll_rate"]);
+		this->sc_api_id = config["sc_api_id"];
+		this->sc_api_secret = config["sc_api_secret"];
+	}
+};
 
 template<class... Ts>
 struct overloaded : Ts... {
-		using Ts::operator()...;
+	using Ts::operator()...;
 };
 template<class... Ts>
 overloaded(Ts...) -> overloaded<Ts...>;
