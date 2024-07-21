@@ -48,7 +48,6 @@ IndentExternBlock: Indent
 IndentGotoLabels: false
 IndentPPDirectives: None
 IndentRequiresClause: true
-IndentWidth: 2
 IndentWrappedFunctionNames: true
 InsertBraces: false
 InsertNewlineAtEOF: true
@@ -102,7 +101,8 @@ SpacesInParensOptions:
   Other: false
 SpacesInSquareBrackets: false
 Standard: Latest
-TabWidth: 2
+IndentWidth: 4
+TabWidth: 4
 UseTab: Always
 AlignConsecutiveAssignments:
   Enabled: false
