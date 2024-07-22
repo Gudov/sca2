@@ -96,6 +96,10 @@ void update_stalcraft_git(const std::filesystem::path db_path) {
 	return db_path;
 }
 
+namespace persistent {
+std::unordered_map<std::string, msg::Alert> alerts;
+}  // namespace persistent
+
 void sendResponse(msg::Response&& response, std::shared_ptr<WsServer::Connection>& connection) {
 	std::stringstream ss;
 	{
@@ -152,13 +156,7 @@ void processRequest(msg::Request&& request, std::shared_ptr<WsServer::Connection
 			);
 		},
 		[&](msg::RequestItems& r) {
-			sendResponse(
-			  {msg::ResponseItems{
-				.items = getItems(),
-				.alerts = {{"item_1_key", {true, 10}}, {"item_2_key", {false, 20}}}
-			  }},
-			  connection
-			);
+			sendResponse({msg::ResponseItems{.items = getItems(), .alerts = persistent::alerts}}, connection);
 		},
 		[&](msg::RequestHistory& r) {
 
@@ -170,7 +168,8 @@ void processRequest(msg::Request&& request, std::shared_ptr<WsServer::Connection
 
 		},
 		[&](msg::RequestAddAlert& r) {
-
+			persistent::alerts.emplace(r.name, msg::Alert{.enabled = true, .price = r.price});
+			sendResponse({msg::ResponseItems{.items = getItems(), .alerts = persistent::alerts}}, connection);
 		}
 	  },
 	  request.request
