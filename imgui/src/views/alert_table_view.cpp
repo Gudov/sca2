@@ -83,7 +83,7 @@ void AlertTableView::RenderAlertControls() {
 void AlertTableView::RenderItemTable(const ImVec2& wContentSize) const {
 	std::string removedAlert;
 	if (ImGui::BeginChild("Table", wContentSize, true)) {
-		ImGui::BeginTable("Alerts", 5, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg);
+		ImGui::BeginTable("Alerts", 4, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg);
 		ImGui::TableSetupColumn("Name");
 		ImGui::TableSetupColumn("Alert price", ImGuiTableColumnFlags_WidthFixed, 100);
 		ImGui::TableSetupColumn("Toggle", ImGuiTableColumnFlags_WidthFixed, 60);
