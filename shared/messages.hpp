@@ -27,15 +27,16 @@ struct RequestPing {
 struct Version {
 	int build_number;
 	std::string version;
+	std::string msg_hash;
 
 	template<class Archive>
 	void save(Archive& ar) const {
-		ar(build_number, version);
+		ar(build_number, version, msg_hash);
 	}
 
 	template<class Archive>
 	void load(Archive& ar) {
-		ar(build_number, version);
+		ar(build_number, version, msg_hash);
 	}
 };
 

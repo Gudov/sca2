@@ -16,7 +16,8 @@ enum WsStatus {
     connecting,
     connected,
     error,
-    closed
+    closed,
+    empty
 };
 
 WsStatus get_ws_status();

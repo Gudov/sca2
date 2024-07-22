@@ -17,8 +17,6 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 
-#include "version.hpp"
-
 int g_width;
 int g_height;
 
@@ -53,8 +51,7 @@ int init_gl() {
 	// Open a window and create its OpenGL context
 	int canvasWidth = g_width;
 	int canvasHeight = g_height;
-	std::string title = "sca ";
-	title += std::to_string(BUILD_NUMBER);
+	std::string title = "sca";
 	g_window = glfwCreateWindow(canvasWidth, canvasHeight, title.c_str(), NULL, NULL);
 	if (g_window == NULL) {
 		fprintf(stderr, "Failed to open GLFW window.\n");
@@ -242,7 +239,7 @@ void begin_draw() {
 	ImGui_ImplGlfw_NewFrame();
 	ImGui::NewFrame();
 
-	static bool show_demo_window = true;
+	static bool show_demo_window = false;
 	if (show_demo_window) {
 		ImGui::SetNextWindowPos(ImVec2(650, 20), ImGuiCond_FirstUseEver); // Normally user code doesn't need/want to call this because positions are saved in .ini file anyway. Here we just want to make the demo initial state a bit more friendly!
 		ImGui::ShowDemoWindow(&show_demo_window);

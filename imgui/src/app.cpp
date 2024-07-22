@@ -1,9 +1,10 @@
 #include "app.hpp"
+#include "messages.hpp"
 #include <unordered_map>
 
 namespace app {
 
-std::pair<int, std::string> server_version;
+msg::Version server_version;
 std::unordered_map<std::string, std::string> items;
 std::unordered_map<std::string, msg::Alert> alerts;
 

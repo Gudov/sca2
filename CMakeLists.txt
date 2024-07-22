@@ -15,7 +15,7 @@ add_custom_target(version DEPENDS version.hpp)
 add_custom_target(default ALL DEPENDS version.hpp)
 
 add_custom_command(
-  COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/version sca ${CMAKE_CURRENT_SOURCE_DIR}/shared/version.hpp
+  COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/version/client sca ${CMAKE_CURRENT_SOURCE_DIR}
   OUTPUT version.hpp
 )
 

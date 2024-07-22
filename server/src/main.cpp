@@ -115,7 +115,10 @@ void processRequest(msg::Request&& request, std::shared_ptr<WsServer::Connection
 		},
 		[&](msg::Version& ver) {
 			printf("client connected, version %d %s\n", ver.build_number, ver.version.c_str());
-			sendResponse({msg::Version{.build_number = BUILD_NUMBER, .version = BUILD_VERSION}}, connection);
+			sendResponse(
+			  {msg::Version{.build_number = BUILD_NUMBER, .version = BUILD_VERSION, .msg_hash = MSG_HASH}},
+			  connection
+			);
 		},
 		[&](msg::RequestItems& r) {
 			sendResponse(

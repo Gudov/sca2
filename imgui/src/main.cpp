@@ -46,8 +46,7 @@ void processResponse(msg::Response&& response) {
 		overloaded{
 			[](msg::ResponsePing& ping) { printf("recive response for ping %s\n", ping.str.c_str()); },
 			[](msg::Version& ver) {
-				app::server_version.first = ver.build_number;
-				app::server_version.second = ver.version;
+				app::server_version = std::move(ver);
 			},
 			[](msg::ResponseItems& items) {
 				printf("recieve items: %lu\n", items.items.size());
@@ -83,22 +82,27 @@ void loop() {
 	processResponses();
 
 	begin_draw();
-	if (net_init) {
+	auto &server_msg_hash = app::server_version.msg_hash;
+	if (!server_msg_hash.empty() && server_msg_hash != MSG_HASH) {
+		ImGui::Text("message.hpp hash missmatch");
+		ImGui::Text("server: %d %s %s", app::server_version.build_number, app::server_version.version.c_str(), server_msg_hash.c_str());
+		ImGui::Text("client: %d %s %s", BUILD_NUMBER, BUILD_VERSION, MSG_HASH);
+	} else if (net_init) {
 		draw_ui();
 	} else {
-		static size_t url_id = 0;
+		static int url_id = 0;
 		ImGui::Text("connecting to %s", ws_urls[url_id].c_str());
 		auto ws_status = get_ws_status();
 		if (ws_status == WsStatus::connected) {
-			sendRequest({msg::Version{.build_number = BUILD_NUMBER, .version = BUILD_VERSION}});
+			sendRequest({msg::Version{.build_number = BUILD_NUMBER, .version = BUILD_VERSION, .msg_hash = MSG_HASH}});
 			sendRequest({msg::RequestItems{}});
 			net_init = true;
-		} else if (ws_status == WsStatus::error) {
+		} else if (ws_status == WsStatus::error || ws_status == WsStatus::closed) {
 			if (url_id < (ws_urls.size() - 1)) {
 				url_id++;
 			}
 			connect_to_ws(ws_urls[url_id]);
-		} else if (ws_status == WsStatus::closed) {
+		} else if (ws_status == WsStatus::empty) {
 			connect_to_ws(ws_urls[url_id]);
 		}
 	}

@@ -132,7 +132,7 @@ void draw_ui() {
 		}
 
 		ImGui::Text("| client: %d %s |", BUILD_NUMBER, BUILD_VERSION);
-		ImGui::Text("server: %d %s", app::server_version.first, BUILD_VERSION);
+		ImGui::Text("server: %d %s", app::server_version.build_number, app::server_version.version.c_str());
 
 		ImGui::EndMenuBar();
 	}

@@ -7,7 +7,7 @@
 
 namespace app {
 
-extern std::pair<int, std::string> server_version;
+extern msg::Version server_version;
 extern std::unordered_map<std::string, std::string> items;
 extern std::unordered_map<std::string, msg::Alert> alerts;
 
