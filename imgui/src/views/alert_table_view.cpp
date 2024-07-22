@@ -91,7 +91,13 @@ void AlertTableView::RenderItemTable(const ImVec2& wContentSize) const {
 		ImGui::TableSetupColumn("Remove");
 		ImGui::TableHeadersRow();
 		for (auto& [id, alert]: app::alerts) {
-			std::string trackedItemName = app::items.at(id);
+			std::string trackedItemName;
+			if (app::items.contains(id)) {
+				trackedItemName = app::items.at(id);
+			} else {
+				trackedItemName = "broken item id: ";
+				trackedItemName += id;
+			}
 			ImVec4 color;
 			ImGui::TableNextRow();
 
