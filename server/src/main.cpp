@@ -6,7 +6,7 @@
 #include <cereal/archives/json.hpp>
 #include <cstdlib>
 #include <unordered_map>
-
+#include <chrono>
 #include <filesystem>
 #include <fstream>
 #include <future>
@@ -70,26 +70,29 @@ constexpr int port = 8001;
 	return map;
 }
 
+void update_stalcraft_git(const std::filesystem::path db_path) {
+	if (!std::filesystem::exists(db_path)) {
+		std::string command = "git clone https://github.com/EXBO-Studio/stalcraft-database/ " + db_path.string();
+		printf("start: %s\n", command.c_str());
+		int result = std::system(command.c_str());
+		printf("finish: %d\n", result);
+
+		if (result != 0)
+			throw std::runtime_error("Failed to clone the repository. Error code: " + std::to_string(result));
+	} else {
+		std::string command = "cd " + db_path.string() + " && git pull";
+		printf("start: %s\n", command.c_str());
+		int result = std::system(command.c_str());
+		printf("finish: %d\n", result);
+
+		if (result != 0)
+			throw std::runtime_error("Failed to update the repository. Error code: " + std::to_string(result));
+	}
+}
+
 [[nodiscard]] std::filesystem::path getItemDB() {
 	const std::filesystem::path db_path = getExecutablePath() / "db";
-
-	static bool init = false;
-	if (!init) {
-		init = true;
-		if (!std::filesystem::exists(db_path)) {
-			std::string command = "git clone https://github.com/EXBO-Studio/stalcraft-database/ " + db_path.string();
-			int result = std::system(command.c_str());
-
-			if (result != 0)
-				throw std::runtime_error("Failed to clone the repository. Error code: " + std::to_string(result));
-		} else {
-			std::string command = "cd " + db_path.string() + " && git pull";
-			int result = std::system(command.c_str());
-
-			if (result != 0)
-				throw std::runtime_error("Failed to update the repository. Error code: " + std::to_string(result));
-		}
-	}
+	update_stalcraft_git(db_path);
 	return db_path;
 }
 
@@ -110,6 +113,30 @@ void sendResponse(msg::Response&& response, std::shared_ptr<WsServer::Connection
 	});
 }
 
+std::unordered_map<std::string, std::string> getItems() {
+	using namespace std::chrono_literals;
+	const std::chrono::system_clock::duration period = 10s;
+	static std::chrono::system_clock::time_point last;
+	static bool init = false;
+	const auto now = std::chrono::system_clock::now();
+	bool update = false;
+	if (!init) {
+		init = true;
+		update = true;
+		last = now;
+	} else if (now - last < period) {
+		update = true;
+	}
+
+	static std::unordered_map<std::string, std::string> items;
+	if (update) {
+		items = parseDatabase(getItemDB() / "ru" / "items");
+		printf("loaded: %lu items\n", items.size());
+	}
+
+	return items;
+}
+
 void processRequest(msg::Request&& request, std::shared_ptr<WsServer::Connection>& connection) {
 	std::visit(
 	  overloaded{
@@ -127,7 +154,7 @@ void processRequest(msg::Request&& request, std::shared_ptr<WsServer::Connection
 		[&](msg::RequestItems& r) {
 			sendResponse(
 			  {msg::ResponseItems{
-				.items = parseDatabase(getItemDB() / "ru" / "items"),
+				.items = getItems(),
 				.alerts = {{"item_1_key", {true, 10}}, {"item_2_key", {false, 20}}}
 			  }},
 			  connection
@@ -156,6 +183,7 @@ void mapToJson(const std::unordered_map<T, T>& map, const std::filesystem::path&
 }
 
 int main() {
+	getItems();
 	WsServer server;
 	server.config.port = port;
 	auto& echo = server.endpoint["^/echo/?$"];

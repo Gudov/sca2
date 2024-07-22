@@ -3,7 +3,6 @@
 #include "imgui_internal.h"
 #include "str_utils.hpp"
 #include <cstring>
-#include <mutex>
 
 #include "ws.hpp"
 #include "messages.hpp"
