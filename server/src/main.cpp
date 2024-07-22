@@ -73,18 +73,22 @@ constexpr int port = 8001;
 [[nodiscard]] std::filesystem::path getItemDB() {
 	const std::filesystem::path db_path = getExecutablePath() / "db";
 
-	if (!std::filesystem::exists(db_path)) {
-		std::string command = "git clone https://github.com/EXBO-Studio/stalcraft-database/ " + db_path.string();
-		int result = std::system(command.c_str());
+	static bool init = false;
+	if (!init) {
+		init = true;
+		if (!std::filesystem::exists(db_path)) {
+			std::string command = "git clone https://github.com/EXBO-Studio/stalcraft-database/ " + db_path.string();
+			int result = std::system(command.c_str());
 
-		if (result != 0)
-			throw std::runtime_error("Failed to clone the repository. Error code: " + std::to_string(result));
-	} else {
-		std::string command = "cd " + db_path.string() + " && git pull";
-		int result = std::system(command.c_str());
+			if (result != 0)
+				throw std::runtime_error("Failed to clone the repository. Error code: " + std::to_string(result));
+		} else {
+			std::string command = "cd " + db_path.string() + " && git pull";
+			int result = std::system(command.c_str());
 
-		if (result != 0)
-			throw std::runtime_error("Failed to update the repository. Error code: " + std::to_string(result));
+			if (result != 0)
+				throw std::runtime_error("Failed to update the repository. Error code: " + std::to_string(result));
+		}
 	}
 	return db_path;
 }
