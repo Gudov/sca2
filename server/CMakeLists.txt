@@ -1,3 +1,4 @@
+option(CPR_USE_SYSTEM_CURL "If enabled we will use the curl lib already installed on this system." ON)
 option(USE_STANDALONE_ASIO "set ON to use standalone Asio instead of Boost.Asio" ON)
 option(BUILD_SHARED_LIBS "Build libraries as shared libraries" OFF)
 
