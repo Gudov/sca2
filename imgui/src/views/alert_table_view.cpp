@@ -85,10 +85,9 @@ void AlertTableView::RenderItemTable(const ImVec2& wContentSize) const {
 	if (ImGui::BeginChild("Table", wContentSize, true)) {
 		ImGui::BeginTable("Alerts", 5, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg);
 		ImGui::TableSetupColumn("Name");
-		ImGui::TableSetupColumn("Alert price");
-		ImGui::TableSetupColumn("Minimum price");
-		ImGui::TableSetupColumn("Toggle");
-		ImGui::TableSetupColumn("Remove");
+		ImGui::TableSetupColumn("Alert price", ImGuiTableColumnFlags_WidthFixed, 100);
+		ImGui::TableSetupColumn("Toggle", ImGuiTableColumnFlags_WidthFixed, 60);
+		ImGui::TableSetupColumn("Remove", ImGuiTableColumnFlags_WidthFixed, 60);
 		ImGui::TableHeadersRow();
 		for (auto& [id, alert]: app::alerts) {
 			std::string trackedItemName;
@@ -123,13 +122,6 @@ void AlertTableView::RenderItemTable(const ImVec2& wContentSize) const {
 			ImGui::TableNextColumn();
 			PriceFormat(alert.price, buff, 250, nullptr);
 			ImGui::Text("%s", buff);
-
-			// Current minimum price
-			ImGui::TableNextColumn();
-			PriceFormat(alert.price, buff, 250, nullptr);
-			std::string minPriceText
-			  = (alert.enabled && alert.price == 0) ? "Lot not found" : (alert.enabled ? buff : "Not scanning");
-			ImGui::Text("%s", minPriceText.c_str());
 
 			// Toggle button
 			ImGui::TableNextColumn();

@@ -11,13 +11,14 @@ project(
   LANGUAGES CXX
 )
 
-add_custom_target(version DEPENDS version.hpp)
-add_custom_target(default ALL DEPENDS version.hpp)
-
 add_custom_command(
   COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/version/client sca ${CMAKE_CURRENT_SOURCE_DIR}
   OUTPUT version.hpp
 )
 
+add_custom_target(version DEPENDS version.hpp)
+
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/imgui/)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/server/)
+
+# add_custom_target(default ALL DEPENDS version.hpp)

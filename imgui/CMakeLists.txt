@@ -2,6 +2,7 @@ set(CMAKE_BUILD_TYPE "Release")
 set(CMAKE_CXX_COMPILER em++)
 
 add_executable(imgui)
+add_dependencies(imgui version)
 
 file(GLOB_RECURSE SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/src/*.c

@@ -2,6 +2,7 @@ option(USE_STANDALONE_ASIO "set ON to use standalone Asio instead of Boost.Asio"
 option(BUILD_SHARED_LIBS "Build libraries as shared libraries" OFF)
 
 add_executable(server)
+add_dependencies(server version)
 
 file(GLOB_RECURSE SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/src/*.c
