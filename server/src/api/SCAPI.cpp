@@ -3,6 +3,9 @@
 
 namespace {
 
+inline const std::string exbo_oauth_url = "https://exbo.net/oauth/token/";
+inline const std::string stalcraft_api_url = "https://eapi.stalcraft.net/";
+
 template<typename T>
 [[nodiscard]] std::string to_string(const T& value) {
 	std::ostringstream oss;
@@ -23,6 +26,21 @@ template<typename... Args>
 
 	return cpr::Url{std::move(url)};
 }
+
+std::string getToken(const std::string& client_id, const std::string& client_secret) {
+	cpr::Header header = {{"Content-Type", "application/x-www-form-urlencoded"}};
+	cpr::Payload payload{
+	  {"client_id", client_id},
+	  {"client_secret", client_secret},
+	  {"grant_type", "client_credentials"},
+	  {"scope", ""}
+	};
+
+	cpr::Response r = cpr::Post(cpr::Url{exbo_oauth_url}, header, payload);
+	checkStatusCode(r);
+	return nlohmann::json::parse(r.text)["access_token"];
+}
+
 }  // namespace
 
 namespace Sort {
@@ -47,7 +65,10 @@ std::string to_string(const Sort::Order& order) {
 }
 }  // namespace Sort
 
-SCAPI::SCAPI(const std::string& url, const std::string& token) : token(token), endpoint(url) {}
+SCAPI::SCAPI(const std::string& client_id, const std::string& client_secret) {
+	this->token = getToken(client_id, client_secret);
+	this->endpoint = stalcraft_api_url;
+}
 
 cpr::Response SCAPI::get(const cpr::Url& url, const cpr::Parameters& params) const {
 	cpr::Header header{{"Content-Type", "application/json"}};

@@ -33,7 +33,7 @@ std::string to_string(const Order& order);
 
 class SCAPI {
   public:
-	SCAPI(const std::string& url, const std::string& token);
+	SCAPI(const std::string& client_id, const std::string& client_secret);
 	[[nodiscard]] cpr::Response get(const cpr::Url& url, const cpr::Parameters& params) const;
 	[[nodiscard]] nlohmann::json getSoldLots(const Query& query) const;
 	[[nodiscard]] nlohmann::json getActiveLots(

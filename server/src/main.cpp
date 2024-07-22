@@ -12,11 +12,15 @@
 #include <future>
 #include <string>
 
+#include "api/SCAPI.hpp"
 #include "messages.hpp"
 #include "version.hpp"
 
 class Config {
   public:
+	Config(const std::filesystem::path& path) {
+		fromJson(path);
+	}
 	std::chrono::system_clock::duration sc_api_poll_rate;
 	std::string sc_api_secret;
 	std::string sc_api_id;
@@ -181,7 +185,15 @@ void mapToJson(const std::unordered_map<T, T>& map, const std::filesystem::path&
 	std::ofstream(output_path) << nlohmann::json(map).dump(4);
 }
 
+void poolingLots(SCAPI &scapi, WsServer &server) {
+	while (true) {
+		
+	}
+}
+
 int main() {
+	Config config("config.json");
+	SCAPI scapi(config.sc_api_id, config.sc_api_secret);
 	getItems();
 	WsServer server;
 	server.config.port = port;
@@ -220,6 +232,11 @@ int main() {
 		server.start([&server_port](unsigned short port) { server_port.set_value(port); });
 	});
 
+	std::thread pooling([&] {
+		poolingLots(scapi, server);
+	});
+
 	std::cout << "Server listening on port " << server_port.get_future().get() << std::endl;
 	server_thread.join();
+	pooling.join();
 }
