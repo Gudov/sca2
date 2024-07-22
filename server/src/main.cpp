@@ -1,4 +1,7 @@
 #include <nlohmann/json.hpp>
+#include <optional>
+#include <thread>
+#include <vector>
 #include <websocket/server_ws.hpp>
 
 #include <sstream>
@@ -18,9 +21,8 @@
 
 class Config {
   public:
-	Config(const std::filesystem::path& path) {
-		fromJson(path);
-	}
+	Config(const std::filesystem::path& path) { fromJson(path); }
+
 	std::chrono::system_clock::duration sc_api_poll_rate;
 	std::string sc_api_secret;
 	std::string sc_api_id;
@@ -101,7 +103,7 @@ void update_stalcraft_git(const std::filesystem::path db_path) {
 }
 
 namespace persistent {
-std::unordered_map<std::string, msg::Alert> alerts;
+std::unordered_map<size_t, msg::Alert> alerts;
 }  // namespace persistent
 
 void sendResponse(msg::Response&& response, std::shared_ptr<WsServer::Connection>& connection) {
@@ -165,14 +167,18 @@ void processRequest(msg::Request&& request, std::shared_ptr<WsServer::Connection
 		[&](msg::RequestHistory& r) {
 
 		},
-		[&](msg::RequestRemoveAlert& r) {
-
+		[&](msg::RequestRemoveAlert& alert) {
+			if (persistent::alerts.contains(alert.id))
+				persistent::alerts.erase(alert.id);
+			sendResponse({msg::ResponseItems{.items = getItems(), .alerts = persistent::alerts}}, connection);
 		},
-		[&](msg::RequestSwitchAlert& r) {
-
+		[&](msg::RequestSwitchAlert& alert) {
+			if (persistent::alerts.contains(alert.id))
+				persistent::alerts[alert.id].enabled = alert.state;
+			sendResponse({msg::ResponseItems{.items = getItems(), .alerts = persistent::alerts}}, connection);
 		},
-		[&](msg::RequestAddAlert& r) {
-			persistent::alerts.emplace(r.name, msg::Alert{.enabled = true, .price = r.price});
+		[&](msg::RequestAddAlert& alert) {
+			persistent::alerts[alert.id] = alert.alert;
 			sendResponse({msg::ResponseItems{.items = getItems(), .alerts = persistent::alerts}}, connection);
 		}
 	  },
@@ -185,15 +191,124 @@ void mapToJson(const std::unordered_map<T, T>& map, const std::filesystem::path&
 	std::ofstream(output_path) << nlohmann::json(map).dump(4);
 }
 
-void poolingLots(SCAPI &scapi, WsServer &server) {
+void parseLots(nlohmann::json& json, std::vector<nlohmann::json>& result) {
+	auto lots = json["lots"];
+	size_t count = 0;
+	for (auto& [_, lot]: lots.items()) {
+		result.push_back(lot);
+		count++;
+	}
+	printf("  recived %lu\n", count);
+}
+
+std::vector<nlohmann::json> loadAll(SCAPI& scapi, const std::string& id) {
+	printf("request all: %s\n", id.c_str());
+	int total;
+	std::vector<nlohmann::json> result;
+	auto active = scapi.getActiveLots(
+	  {.region_id = "RU", .item_id = id, .limit = 200, .offset = 0, .additional = true},
+	  Sort::Criterion::BuyoutPrice,
+	  Sort::Order::Ascending
+	);
+	parseLots(active, result);
+	total = active["total"].get<int>();
+
+	int offset;
+	total -= 200;
+	offset += 200;
+	while (total > 0) {
+		auto active = scapi.getActiveLots(
+		  {.region_id = "RU", .item_id = id, .limit = 200, .offset = size_t(offset), .additional = true},
+		  Sort::Criterion::BuyoutPrice,
+		  Sort::Order::Ascending
+		);
+		parseLots(active, result);
+		total -= 200;
+		offset += 200;
+	}
+
+	printf("loaded lots for: %s %lu\n", id.c_str(), result.size());
+
+	return result;
+}
+
+bool check_alert(nlohmann::json& lot, msg::Alert& alert) {
+	if (!lot.contains("buyoutPrice") || lot["buyoutPrice"].get<size_t>() > alert.price) {
+		return false;
+	}
+
+	auto additional = nlohmann::json{};
+	if (lot.contains("additional")) {
+		additional = lot["additional"];
+	}
+
+	if (alert.qlt && (!additional.contains("qlt") || additional["qlt"].get<int>() < alert.qlt)) {
+		return false;
+	}
+
+	if (alert.ptn && (!additional.contains("ptn") || additional["ptn"].get<int>() < alert.ptn)) {
+		return false;
+	}
+
+	if (alert.percent) {
+		if (!additional.contains("stats_random")) {
+			return false;
+		}
+		const double magic = 6.5279657368611;
+		double qlt = 1;// = additional.contains("qlt") && (additional["qlt"].get<int>() > 0);
+		if (additional.contains("qlt") && (additional["qlt"].get<int>() > 0)) {
+			qlt = additional["qlt"].get<int>() + 1;
+		}
+		double persent = additional["stats_random"].get<double>();
+		persent = persent * magic;
+		persent *= qlt;
+		printf("percent: %lf\n", persent);
+		if (float(persent) < (*alert.percent)) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
+void poolingLots(SCAPI& scapi, WsServer& server, const Config& config) {
+	using namespace std::chrono_literals;
 	while (true) {
-		
+		std::unordered_map<std::string, std::vector<msg::Alert>> c_alerts;
+		for (auto& [id, alert]: persistent::alerts) {
+			if (alert.enabled) {
+				c_alerts[alert.item].push_back(alert);
+			}
+		}
+
+		if (c_alerts.empty()) {
+			std::this_thread::sleep_for(10s);
+			continue;
+		}
+
+		for (auto& [id, alerts]: c_alerts) {
+			auto active = loadAll(scapi, id);
+			for (auto& lot: active) {
+				for (auto& alert: alerts) {
+					bool v = check_alert(lot, alert);
+					if (v) {
+						std::string str = lot.dump(4);
+						printf("dump lot: %s\n", str.c_str());
+					}
+				}
+			}
+			std::this_thread::sleep_for(config.sc_api_poll_rate);
+		}
 	}
 }
 
 int main() {
 	Config config("config.json");
 	SCAPI scapi(config.sc_api_id, config.sc_api_secret);
+	/*persistent::alerts[1] = {.item = "test", .enabled = true, .price = 15000, .qlt = 3, .percent = 5, .ptn = 2};
+	persistent::alerts[2]
+	  = {.item = "some", .enabled = false, .price = 15000000, .qlt = 1, .percent = 33, .ptn = std::nullopt};
+	*/
 	getItems();
 	WsServer server;
 	server.config.port = port;
@@ -232,9 +347,7 @@ int main() {
 		server.start([&server_port](unsigned short port) { server_port.set_value(port); });
 	});
 
-	std::thread pooling([&] {
-		poolingLots(scapi, server);
-	});
+	std::thread pooling([&] { poolingLots(scapi, server, config); });
 
 	std::cout << "Server listening on port " << server_port.get_future().get() << std::endl;
 	server_thread.join();

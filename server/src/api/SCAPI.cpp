@@ -73,7 +73,7 @@ SCAPI::SCAPI(const std::string& client_id, const std::string& client_secret) {
 
 cpr::Response SCAPI::get(const cpr::Url& url, const cpr::Parameters& params) const {
 	cpr::Header header{{"Content-Type", "application/json"}};
-	cpr::Response r = cpr::Get(url, params, header, cpr::Bearer(token));
+	cpr::Response r = cpr::Get(url, params, header, cpr::Bearer(token), cpr::VerifySsl(0));
 	checkStatusCode(r);
 	return r;
 }

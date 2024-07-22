@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include "imgui.h"
 
 template<typename T>
 [[nodiscard]] T toLower(const T& input) {
@@ -26,3 +27,8 @@ inline bool contains(const std::string& s1, const std::string& s2) {
 }
 
 int PriceFormat(double value, char* buff, int size, void*);
+int percToQlt(float perc);
+
+std::string qltToStr(int qlt, std::string len = "ru");
+ImVec4 qltToColor(int qlt);
+int percToQlt(float perc);

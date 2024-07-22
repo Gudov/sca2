@@ -28,16 +28,11 @@ void ItemListView::Update() {
 		if (ImGui::BeginChild("List", size, true)) {
 			for (const auto& [id, name]: app::items) {
 				if (contains(name, query)) {
-					bool hasAlert = app::alerts.contains(id);
-					if (hasAlert)
-						ImGui::PushStyleColor(ImGuiCol_Text, ImVec4{20, 255, 20, 255});
 					if (ImGui::Selectable(name.c_str())) {
 						HistoryView* historyView = createView<HistoryView>(ImVec2(100, 100), ImVec2(600, 350), "Price history");
 						sendRequest({msg::RequestHistory{id}});
 						historyView->itemID = id;
 					}
-					if (hasAlert)
-						ImGui::PopStyleColor(1);
 				}
 			}
 		}

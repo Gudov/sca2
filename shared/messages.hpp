@@ -4,11 +4,32 @@
 #include <cereal/cereal.hpp>
 #include <cereal/types/variant.hpp>
 #include <cereal/types/unordered_map.hpp>
+#include <cereal/types/optional.hpp>
 #include <cereal/archives/binary.hpp>
 #include <unordered_map>
+#include <optional>
 #include <variant>
 
 namespace msg {
+
+struct Alert {
+	std::string item;
+	bool enabled;
+	size_t price;
+	std::optional<int> qlt;
+	std::optional<int> percent;
+	std::optional<int> ptn;
+
+	template<class Archive>
+	void save(Archive& ar) const {
+		ar(item, enabled, price, qlt, percent, ptn);
+	}
+
+	template<class Archive>
+	void load(Archive& ar) {
+		ar(item, enabled, price, qlt, percent, ptn);
+	}
+};
 
 struct RequestPing {
 	std::string str;
@@ -69,46 +90,46 @@ struct RequestHistory {
 };
 
 struct RequestRemoveAlert {
-	std::string name;
+	size_t id;
 
 	template<class Archive>
 	void save(Archive& ar) const {
-		ar(name);
+		ar(id);
 	}
 
 	template<class Archive>
 	void load(Archive& ar) {
-		ar(name);
+		ar(id);
 	}
 };
 
 struct RequestSwitchAlert {
-	std::string name;
+	size_t id;
 	bool state;
 
 	template<class Archive>
 	void save(Archive& ar) const {
-		ar(name, state);
+		ar(id, state);
 	}
 
 	template<class Archive>
 	void load(Archive& ar) {
-		ar(name, state);
+		ar(id, state);
 	}
 };
 
 struct RequestAddAlert {
-	std::string name;
-	size_t price;
+	size_t id;
+	Alert alert;
 
 	template<class Archive>
 	void save(Archive& ar) const {
-		ar(name, price);
+		ar(id, alert);
 	}
 
 	template<class Archive>
 	void load(Archive& ar) {
-		ar(name, price);
+		ar(id, alert);
 	}
 };
 
@@ -134,24 +155,9 @@ struct Request {
 	}
 };
 
-struct Alert {
-	bool enabled;
-	size_t price;
-
-	template<class Archive>
-	void save(Archive& ar) const {
-		ar(enabled, price);
-	}
-
-	template<class Archive>
-	void load(Archive& ar) {
-		ar(enabled, price);
-	}
-};
-
 struct ResponseItems {
 	std::unordered_map<std::string, std::string> items;
-	std::unordered_map<std::string, Alert> alerts;
+	std::unordered_map<size_t, Alert> alerts;
 
 	template<class Archive>
 	void save(Archive& ar) const {

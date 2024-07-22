@@ -20,6 +20,7 @@ file(GLOB_RECURSE SOURCES
   imgui/imgui_demo.cpp
   imgui/imgui_widgets.cpp
   imgui/imgui_tables.cpp
+  imgui/misc/cpp/imgui_stdlib.cpp
 )
 
 target_compile_features(
