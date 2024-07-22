@@ -79,7 +79,7 @@ void update_stalcraft_git(const std::filesystem::path db_path) {
 		std::string command = "git clone https://github.com/EXBO-Studio/stalcraft-database/ " + db_path.string();
 		printf("start: %s\n", command.c_str());
 		int result = std::system(command.c_str());
-		printf("finish: %d\n", result);
+		printf("finish git: %d\n", result);
 
 		if (result != 0)
 			throw std::runtime_error("Failed to clone the repository. Error code: " + std::to_string(result));
@@ -87,7 +87,7 @@ void update_stalcraft_git(const std::filesystem::path db_path) {
 		std::string command = "cd " + db_path.string() + " && git pull";
 		printf("start: %s\n", command.c_str());
 		int result = std::system(command.c_str());
-		printf("finish: %d\n", result);
+		printf("finish git: %d\n", result);
 
 		if (result != 0)
 			throw std::runtime_error("Failed to update the repository. Error code: " + std::to_string(result));

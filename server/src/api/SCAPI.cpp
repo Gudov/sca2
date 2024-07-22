@@ -1,5 +1,6 @@
 #include "SCAPI.hpp"
 #include "api/ServerErrorException.hpp"
+#include "cpr/ssl_options.h"
 
 namespace {
 
@@ -36,7 +37,7 @@ std::string getToken(const std::string& client_id, const std::string& client_sec
 	  {"scope", ""}
 	};
 
-	cpr::Response r = cpr::Post(cpr::Url{exbo_oauth_url}, header, payload);
+	cpr::Response r = cpr::Post(cpr::Url{exbo_oauth_url}, header, payload, cpr::VerifySsl(0));
 	checkStatusCode(r);
 	return nlohmann::json::parse(r.text)["access_token"];
 }
