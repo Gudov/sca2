@@ -4,8 +4,10 @@
 #include "imgui_internal.h"
 #include "misc/cpp/imgui_stdlib.h"
 #include "str_utils.hpp"
+#include <algorithm>
 #include <cstring>
 #include <optional>
+#include <vector>
 
 #include "ws.hpp"
 #include "messages.hpp"
@@ -110,6 +112,7 @@ void AlertTableView::RenderAlertControls() {
 		percent = "";
 		itemID = std::nullopt;
 		enabled_v = false;
+		query = "";
 	}
 
 	ImGui::SetNextItemWidth(60);
@@ -130,17 +133,26 @@ void AlertTableView::RenderAlertControls() {
 void AlertTableView::RenderItemTable(const ImVec2& wContentSize) {
 	std::optional<size_t> removedAlert = std::nullopt;
 	if (ImGui::BeginChild("Table", wContentSize, true)) {
-		ImGui::BeginTable("Alerts", 8, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg);
+		ImGui::BeginTable("Alerts", 9, ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg);
 		ImGui::TableSetupColumn("id", ImGuiTableColumnFlags_WidthFixed, 20);
 		ImGui::TableSetupColumn("Name");
 		ImGui::TableSetupColumn("Qlt", ImGuiTableColumnFlags_WidthFixed, 20);
 		ImGui::TableSetupColumn("+", ImGuiTableColumnFlags_WidthFixed, 20);
 		ImGui::TableSetupColumn("%", ImGuiTableColumnFlags_WidthFixed, 20);
 		ImGui::TableSetupColumn("rub", ImGuiTableColumnFlags_WidthFixed, 60);
+		ImGui::TableSetupColumn("last", ImGuiTableColumnFlags_WidthFixed, 60);
 		ImGui::TableSetupColumn("Toggle", ImGuiTableColumnFlags_WidthFixed, 60);
 		ImGui::TableSetupColumn("Remove", ImGuiTableColumnFlags_WidthFixed, 60);
 		ImGui::TableHeadersRow();
-		for (auto& [id, alert]: app::alerts) {
+		std::vector<size_t> alert_ids;
+		for (auto &alert : app::alerts) {
+			alert_ids.push_back(alert.first);
+		}
+		std::sort(alert_ids.begin(), alert_ids.end(), [] (auto &a, auto &b) -> bool {
+			return app::alerts[a].item > app::alerts[b].item;
+		});
+		for (auto alert_id : alert_ids) {
+			auto &alert = app::alerts[alert_id];
 			std::string trackedItemName;
 			if (app::items.contains(alert.item)) {
 				trackedItemName = app::items.at(alert.item);
@@ -156,9 +168,9 @@ void AlertTableView::RenderItemTable(const ImVec2& wContentSize) {
 			ImGui::TableNextRow();
 
 			ImGui::TableNextColumn();
-			std::string id_name = std::to_string(id);
+			std::string id_name = std::to_string(alert_id);
 			if (ImGui::Button(id_name.c_str())) {
-				id_v = id;
+				id_v = alert_id;
 				itemID = alert.item;
 				rub = std::to_string(alert.price);
 				qlt = alert.qlt ? std::to_string(*alert.qlt) : std::string();
@@ -169,7 +181,10 @@ void AlertTableView::RenderItemTable(const ImVec2& wContentSize) {
 			// ImGui::Text("%lu", id);
 
 			if (alert.enabled && alert.price != 0)
-				color = ImVec4(0.0f, 1.0f, 0.0f, 1.0f);
+				if (alert.min_price > alert.price)
+					color = ImVec4(1.0f, 0.0f, 0.0f, 1.0f);
+				else
+					color = ImVec4(0.0f, 1.0f, 0.0f, 1.0f);
 			else
 				color = ImVec4(100, 100, 100, 255);
 			ImGui::PushStyleColor(ImGuiCol_Text, color);
@@ -207,17 +222,22 @@ void AlertTableView::RenderItemTable(const ImVec2& wContentSize) {
 			PriceFormat(alert.price, buff, 250, nullptr);
 			ImGui::Text("%s", buff);
 
+			// last price
+			ImGui::TableNextColumn();
+			PriceFormat(alert.min_price, buff, 250, nullptr);
+			ImGui::Text("%s", buff);
+
 			// Toggle button
 			ImGui::TableNextColumn();
-			std::string toggleName = std::format("{}##{}", alert.enabled ? "Disable" : "Enable", id);
+			std::string toggleName = std::format("{}##{}", alert.enabled ? "Disable" : "Enable", alert_id);
 			if (ImGui::Button(toggleName.c_str()))
-				sendRequest({msg::RequestSwitchAlert{id, !alert.enabled}});
+				sendRequest({msg::RequestSwitchAlert{alert_id, !alert.enabled}});
 
 			// Remove button
-			std::string removeName = std::format("{}##{}", "Remove", id);
+			std::string removeName = std::format("{}##{}", "Remove", alert_id);
 			ImGui::TableNextColumn();
 			if (ImGui::Button(removeName.c_str()))
-				removedAlert = id;
+				removedAlert = alert_id;
 		}
 		ImGui::EndTable();
 	}

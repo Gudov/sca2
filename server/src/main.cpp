@@ -2,6 +2,7 @@
 #include <optional>
 #include <thread>
 #include <utility>
+#include <variant>
 #include <vector>
 #include <websocket/server_ws.hpp>
 
@@ -44,6 +45,8 @@ template<class... Ts>
 overloaded(Ts...) -> overloaded<Ts...>;
 
 using WsServer = SimpleWeb::SocketServer<SimpleWeb::WS>;
+
+std::unordered_set<std::string> auth;
 
 constexpr int port = 8001;
 
@@ -149,6 +152,10 @@ std::unordered_map<std::string, std::string> getItems() {
 }
 
 void processRequest(msg::Request&& request, std::shared_ptr<WsServer::Connection>& connection) {
+	bool ip_match = auth.contains(connection->remote_endpoint().address().to_string());
+	if (!ip_match && !std::holds_alternative<msg::RequestPassword>(request.request)) {
+		return;
+	}
 	std::visit(
 	  overloaded{
 		[&](msg::RequestPing& ping) {
@@ -181,6 +188,13 @@ void processRequest(msg::Request&& request, std::shared_ptr<WsServer::Connection
 		[&](msg::RequestAddAlert& alert) {
 			persistent::alerts[alert.id] = alert.alert;
 			sendResponse({msg::ResponseItems{.items = getItems(), .alerts = persistent::alerts}}, connection);
+		},
+		[&](msg::RequestPassword& pass) {
+			if (pass.password == "1131") {
+				auth.insert(connection->remote_endpoint().address().to_string());
+				printf("auth: %s\n", connection->remote_endpoint().address().to_string().c_str());
+				sendResponse(msg::Response{msg::ResponsePassword{true}}, connection);
+			}
 		}
 	  },
 	  request.request
@@ -234,10 +248,6 @@ std::vector<nlohmann::json> loadAll(SCAPI& scapi, const std::string& id) {
 }
 
 bool check_alert(msg::Lot& lot, msg::Alert& alert) {
-	if (lot.buyout_price > alert.price) {
-		return false;
-	}
-
 	if (alert.qlt && (!lot.qlt || *lot.qlt < *alert.qlt)) {
 		return false;
 	}
@@ -268,10 +278,6 @@ std::optional<msg::Lot> parseLot(nlohmann::json &j) {
 		if (additional.contains("qlt")) {
 			lot.qlt = additional["qlt"].get<size_t>();
 		}
-
-		//if (additional.contains("stats_random")) {
-			//lot.stats_random = additional["stats_random"].get<size_t>();
-		//}
 	}
 
 	if (j.contains("itemId")) {
@@ -292,11 +298,12 @@ std::optional<msg::Lot> parseLot(nlohmann::json &j) {
 void poolingLots(SCAPI& scapi, WsServer& server, const Config& config) {
 	using namespace std::chrono_literals;
 	while (true) {
-		std::unordered_map<std::string, std::vector<std::pair<msg::Alert, size_t>>> c_alerts;
+		std::unordered_map<std::string, std::vector<size_t>> c_alerts;
 		for (auto& [id, alert]: persistent::alerts) {
 			if (alert.enabled) {
-				c_alerts[alert.item].push_back({alert, id});
+				c_alerts[alert.item].push_back(id);
 			}
+			alert.min_price = 0;
 		}
 
 		if (c_alerts.empty()) {
@@ -306,7 +313,7 @@ void poolingLots(SCAPI& scapi, WsServer& server, const Config& config) {
 
 		msg::ResponseAlertItems alertItems;
 
-		for (auto& [id, alerts]: c_alerts) {
+		for (auto& [id, alerts_ids]: c_alerts) {
 			auto active = loadAll(scapi, id);
 			for (auto& lot_json: active) {
 				auto lot_o = parseLot(lot_json);
@@ -319,9 +326,17 @@ void poolingLots(SCAPI& scapi, WsServer& server, const Config& config) {
 				if (lot.buyout_price == 0) {
 					continue;
 				}
-				for (auto& alert: alerts) {
-					if (check_alert(lot, alert.first)) {
-						lot.alert_ids.push_back(alert.second);
+				for (auto& alert_id: alerts_ids) {
+					auto &alert = persistent::alerts[alert_id];
+					if (check_alert(lot, alert)) {
+						if (lot.buyout_price <= alert.price+1) {
+							lot.alert_ids.push_back(alert_id);
+						}
+						//printf("buyout_price %lu %lu\n", lot.buyout_price, alert.min_price);
+						if (lot.buyout_price < alert.min_price || alert.min_price == 0) {
+							//printf("buyout_price\n");
+							alert.min_price = lot.buyout_price;
+						}
 					}
 				}
 				if (!lot.alert_ids.empty()) {
@@ -330,9 +345,10 @@ void poolingLots(SCAPI& scapi, WsServer& server, const Config& config) {
 			}
 		}
 
-		if (!alertItems.lots.empty()) {
-			auto connections = server.get_connections();
-			for (auto conn : connections) {
+		alertItems.alerts = persistent::alerts;
+		auto connections = server.get_connections();
+		for (auto conn : connections) {
+			if (auth.contains(conn->remote_endpoint().address().to_string())) {
 				sendResponse(msg::Response{alertItems}, conn);
 			}
 		}

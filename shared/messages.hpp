@@ -19,6 +19,8 @@ namespace msg {
 struct Alert {
 	std::string item;
 	bool enabled;
+	bool matched;
+	size_t min_price;
 	size_t price;
 	std::optional<int> qlt;
 	std::optional<int> percent;
@@ -26,12 +28,40 @@ struct Alert {
 
 	template<class Archive>
 	void save(Archive& ar) const {
-		ar(item, enabled, price, qlt, percent, ptn);
+		ar(item, enabled, matched, min_price, price, qlt, percent, ptn);
 	}
 
 	template<class Archive>
 	void load(Archive& ar) {
-		ar(item, enabled, price, qlt, percent, ptn);
+		ar(item, enabled, matched, min_price, price, qlt, percent, ptn);
+	}
+};
+
+struct RequestPassword {
+	std::string password;
+
+	template<class Archive>
+	void save(Archive& ar) const {
+		ar(password);
+	}
+
+	template<class Archive>
+	void load(Archive& ar) {
+		ar(password);
+	}
+};
+
+struct ResponsePassword {
+	bool valid;
+
+	template<class Archive>
+	void save(Archive& ar) const {
+		ar(valid);
+	}
+
+	template<class Archive>
+	void load(Archive& ar) {
+		ar(valid);
 	}
 };
 
@@ -145,7 +175,8 @@ struct Request {
 	  RequestHistory,
 	  RequestRemoveAlert,
 	  RequestSwitchAlert,
-	  RequestAddAlert>
+	  RequestAddAlert,
+	  RequestPassword>
 	  request;
 
 	template<class Archive>
@@ -196,15 +227,16 @@ struct Lot {
 
 struct ResponseAlertItems {
 	std::vector<Lot> lots;
+	std::unordered_map<size_t, Alert> alerts;
 
 	template<class Archive>
 	void save(Archive& ar) const {
-		ar(lots);
+		ar(lots, alerts);
 	}
 
 	template<class Archive>
 	void load(Archive& ar) {
-		ar(lots);
+		ar(lots, alerts);
 	}
 };
 
@@ -237,7 +269,7 @@ struct Notify {
 };
 
 struct Response {
-	std::variant<ResponsePing, Version, ResponseItems, Notify, ResponseAlertItems> response;
+	std::variant<ResponsePing, Version, ResponseItems, Notify, ResponseAlertItems, ResponsePassword> response;
 
 	template<class Archive>
 	void save(Archive& ar) const {

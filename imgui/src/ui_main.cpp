@@ -164,7 +164,7 @@ void draw_ui() {
 	UpdateViews();
 	ImGui::End();
 
-	{
+	if (false) {
 		static bool show_main_window = true;
 		ImGui::Begin("debug", &show_main_window);
 		std::string version = std::to_string(BUILD_NUMBER);

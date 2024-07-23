@@ -9,6 +9,9 @@ EM_JS(void, notify, (
 	const char* body_c, int body_len,
 	const char* clip_c, int clip_len),
   { 
+	var audio = new Audio('inugami-korone-beep-beep-beep.mp3');
+	audio.play();
+
 	title = UTF8ToString(title_c, title_len);
 	body = UTF8ToString(body_c, body_len);
 	clip = UTF8ToString(clip_c, clip_len);
@@ -38,6 +41,7 @@ EM_JS(void, notify, (
 			}
 		});
 	}
+	navigator.clipboard.writeText(clip);
   }
 );
 // clang-format on
