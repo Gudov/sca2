@@ -181,7 +181,7 @@ void AlertTableView::RenderItemTable(const ImVec2& wContentSize) {
 			// ImGui::Text("%lu", id);
 
 			if (alert.enabled && alert.price != 0)
-				if (alert.min_price > alert.price)
+				if (alert.min_price > alert.price || alert.min_price == 0)
 					color = ImVec4(1.0f, 0.0f, 0.0f, 1.0f);
 				else
 					color = ImVec4(0.0f, 1.0f, 0.0f, 1.0f);
