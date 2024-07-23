@@ -1,6 +1,7 @@
 #include <nlohmann/json.hpp>
 #include <optional>
 #include <thread>
+#include <utility>
 #include <vector>
 #include <websocket/server_ws.hpp>
 
@@ -232,52 +233,69 @@ std::vector<nlohmann::json> loadAll(SCAPI& scapi, const std::string& id) {
 	return result;
 }
 
-bool check_alert(nlohmann::json& lot, msg::Alert& alert) {
-	if (!lot.contains("buyoutPrice") || lot["buyoutPrice"].get<size_t>() > alert.price) {
+bool check_alert(msg::Lot& lot, msg::Alert& alert) {
+	if (lot.buyout_price > alert.price) {
 		return false;
 	}
 
-	auto additional = nlohmann::json{};
-	if (lot.contains("additional")) {
-		additional = lot["additional"];
-	}
-
-	if (alert.qlt && (!additional.contains("qlt") || additional["qlt"].get<int>() < alert.qlt)) {
+	if (alert.qlt && (!lot.qlt || *lot.qlt < *alert.qlt)) {
 		return false;
 	}
 
-	if (alert.ptn && (!additional.contains("ptn") || additional["ptn"].get<int>() < alert.ptn)) {
+	if (alert.ptn && (!lot.ptn || *lot.ptn < *alert.ptn)) {
 		return false;
-	}
-
-	if (alert.percent) {
-		if (!additional.contains("stats_random")) {
-			return false;
-		}
-		const double magic = 6.5279657368611;
-		double qlt = 1;// = additional.contains("qlt") && (additional["qlt"].get<int>() > 0);
-		if (additional.contains("qlt") && (additional["qlt"].get<int>() > 0)) {
-			qlt = additional["qlt"].get<int>() + 1;
-		}
-		double persent = additional["stats_random"].get<double>();
-		persent = persent * magic;
-		persent *= qlt;
-		printf("percent: %lf\n", persent);
-		if (float(persent) < (*alert.percent)) {
-			return false;
-		}
 	}
 
 	return true;
 }
 
+std::optional<msg::Lot> parseLot(nlohmann::json &j) {
+	msg::Lot lot;
+	if (j.contains("additional")) {
+		auto additional = j["additional"];
+		if (additional.contains("bonus_properties")) {
+			std::vector<std::string> bonus_properties;
+			for (auto &[_, prop] : additional["bonus_properties"].items()) {
+				bonus_properties.push_back(prop);
+			}
+			lot.bonus_properties = bonus_properties;
+		}
+
+		if (additional.contains("ptn")) {
+			lot.ptn = additional["ptn"].get<size_t>();
+		}
+
+		if (additional.contains("qlt")) {
+			lot.qlt = additional["qlt"].get<size_t>();
+		}
+
+		if (additional.contains("stats_random")) {
+			lot.stats_random = additional["stats_random"].get<size_t>();
+		}
+	}
+
+	if (j.contains("itemId")) {
+		lot.item_id = j["itemId"].get<std::string>();
+	} else {
+		return std::nullopt;
+	}
+
+	if (j.contains("buyoutPrice")) {
+		lot.buyout_price = j["buyoutPrice"].get<size_t>();
+	} else {
+		return std::nullopt;
+	}
+
+	return lot;
+}
+
 void poolingLots(SCAPI& scapi, WsServer& server, const Config& config) {
 	using namespace std::chrono_literals;
 	while (true) {
-		std::unordered_map<std::string, std::vector<msg::Alert>> c_alerts;
+		std::unordered_map<std::string, std::vector<std::pair<msg::Alert, size_t>>> c_alerts;
 		for (auto& [id, alert]: persistent::alerts) {
 			if (alert.enabled) {
-				c_alerts[alert.item].push_back(alert);
+				c_alerts[alert.item].push_back({alert, id});
 			}
 		}
 
@@ -286,19 +304,37 @@ void poolingLots(SCAPI& scapi, WsServer& server, const Config& config) {
 			continue;
 		}
 
+		msg::ResponseAlertItems alertItems;
+
 		for (auto& [id, alerts]: c_alerts) {
 			auto active = loadAll(scapi, id);
-			for (auto& lot: active) {
+			for (auto& lot_json: active) {
+				auto lot_o = parseLot(lot_json);
+				if (!lot_o) {
+					std::string broken_lot = lot_json.dump(4);
+					printf("broken lot %s\n", broken_lot.c_str());
+					continue;
+				}
+				auto &lot = *lot_o;
 				for (auto& alert: alerts) {
-					bool v = check_alert(lot, alert);
-					if (v) {
-						std::string str = lot.dump(4);
-						printf("dump lot: %s\n", str.c_str());
+					if (check_alert(lot, alert.first)) {
+						lot.alert_ids.push_back(alert.second);
 					}
 				}
+				if (!lot.alert_ids.empty()) {
+					alertItems.lots.push_back(lot);
+				}
 			}
-			std::this_thread::sleep_for(config.sc_api_poll_rate);
 		}
+
+		if (!alertItems.lots.empty()) {
+			auto connections = server.get_connections();
+			for (auto conn : connections) {
+				sendResponse(msg::Response{alertItems}, conn);
+			}
+		}
+
+		std::this_thread::sleep_for(config.sc_api_poll_rate);
 	}
 }
 

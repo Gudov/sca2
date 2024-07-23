@@ -1,14 +1,18 @@
 #pragma once
 
+#include <cstddef>
 #include <string>
 #include <cereal/cereal.hpp>
 #include <cereal/types/variant.hpp>
 #include <cereal/types/unordered_map.hpp>
 #include <cereal/types/optional.hpp>
+#include <cereal/types/array.hpp>
+#include <cereal/types/vector.hpp>
 #include <cereal/archives/binary.hpp>
 #include <unordered_map>
 #include <optional>
 #include <variant>
+#include <vector>
 
 namespace msg {
 
@@ -170,6 +174,40 @@ struct ResponseItems {
 	}
 };
 
+struct Lot {
+	std::optional<std::vector<std::string>> bonus_properties;
+	std::optional<std::size_t> ptn;
+	std::optional<std::size_t> qlt;
+	std::optional<std::size_t> stats_random;
+	size_t buyout_price;
+	std::string item_id;
+	std::vector<size_t> alert_ids;
+
+	template<class Archive>
+	void save(Archive& ar) const {
+		ar(bonus_properties, ptn, qlt, stats_random, buyout_price, item_id, alert_ids);
+	}
+
+	template<class Archive>
+	void load(Archive& ar) {
+		ar(bonus_properties, ptn, qlt, stats_random, buyout_price, item_id, alert_ids);
+	}
+};
+
+struct ResponseAlertItems {
+	std::vector<Lot> lots;
+
+	template<class Archive>
+	void save(Archive& ar) const {
+		ar(lots);
+	}
+
+	template<class Archive>
+	void load(Archive& ar) {
+		ar(lots);
+	}
+};
+
 struct ResponsePing {
 	std::string str;
 
@@ -199,7 +237,7 @@ struct Notify {
 };
 
 struct Response {
-	std::variant<ResponsePing, Version, ResponseItems, Notify> response;
+	std::variant<ResponsePing, Version, ResponseItems, Notify, ResponseAlertItems> response;
 
 	template<class Archive>
 	void save(Archive& ar) const {

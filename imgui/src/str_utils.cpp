@@ -12,6 +12,12 @@ int PriceFormat(double value, char* buff, int size, void*) {
     return snprintf(buff, size, "%lu", size_t(value));
 }
 
+std::string PriceFormat(double value) {
+    char buff[256];
+    PriceFormat(value, buff, 255, nullptr);
+    return buff;
+}
+
 std::string qltToStr(int qlt, std::string len) {
     switch (qlt) {
         case 0: return "обычный";

@@ -1,3 +1,4 @@
+#include <chrono>
 #include <sstream>
 #include <stdio.h>
 #include <string>
@@ -27,6 +28,7 @@
 #include "imgui_emc.hpp"
 #include "ui_main.hpp"
 #include "notify.hpp"
+#include "str_utils.hpp"
 
 template<class... Ts>
 struct overloaded : Ts... {
@@ -55,6 +57,26 @@ void processResponse(msg::Response&& response) {
 			},
 			[](msg::Notify& notify) {
 				send_notify(notify);
+			},
+			[](msg::ResponseAlertItems &alert) {
+				using namespace std::chrono_literals;
+				if (alert.lots.empty()) {
+					printf("wtf wghere my alerts");
+					return;
+				}
+				auto lot = alert.lots.front();
+				static std::string last_allert = "";
+				static std::chrono::system_clock::time_point last_time;
+				std::string alert_name = lot.item_id;
+				alert_name += std::to_string(lot.buyout_price);
+				std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
+				if (last_allert == alert_name && (now - last_time) < 10s) {
+					return;
+				}
+				last_allert = alert_name;
+				last_time = now;
+				std::string price = PriceFormat(lot.buyout_price);
+				send_notify(app::items[lot.item_id], price, app::items[lot.item_id]);
 			}
 		},
 		response.response

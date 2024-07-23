@@ -27,6 +27,7 @@ inline bool contains(const std::string& s1, const std::string& s2) {
 }
 
 int PriceFormat(double value, char* buff, int size, void*);
+std::string PriceFormat(double value);
 int percToQlt(float perc);
 
 std::string qltToStr(int qlt, std::string len = "ru");
