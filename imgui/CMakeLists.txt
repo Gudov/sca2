@@ -4,6 +4,8 @@ set(CMAKE_CXX_COMPILER em++)
 add_executable(imgui)
 add_dependencies(imgui version)
 
+# SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -fwasm-exceptions -g")
+
 file(GLOB_RECURSE SOURCES
   ${CMAKE_CURRENT_SOURCE_DIR}/src/*.c
   ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp

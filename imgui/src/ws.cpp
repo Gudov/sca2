@@ -11,7 +11,7 @@ EMSCRIPTEN_WEBSOCKET_T ws;
 std::mutex ws_queue_mutex;
 std::queue<std::string> ws_queue;
 
-static WsStatus ws_status = WsStatus::closed;
+static WsStatus ws_status = WsStatus::empty;
 
 EM_BOOL onopen(int eventType, const EmscriptenWebSocketOpenEvent* websocketEvent, void* userData) {
 	puts("ws: onopen");

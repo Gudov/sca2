@@ -1,5 +1,6 @@
 #include <chrono>
 #include <sstream>
+#include <stdexcept>
 #include <stdio.h>
 #include <string>
 #include <vector>
@@ -38,9 +39,9 @@ template<class... Ts>
 overloaded(Ts...) -> overloaded<Ts...>;
 
 static const std::vector<std::string> ws_urls = {
-	"ws://gudov.info:8001/api",
-	"ws://127.0.0.1:8001/api",
-	"ws://10.0.0.12:8001/api"
+	"wss://gudov.info:443/api"
+	//"ws://127.0.0.1:8001/api",
+	//"ws://10.0.0.12:8001/api"
 };
 
 void processResponse(msg::Response&& response) {
@@ -64,7 +65,14 @@ void processResponse(msg::Response&& response) {
 					printf("wtf wghere my alerts");
 					return;
 				}
-				auto lot = alert.lots.front();
+				auto &lot = alert.lots.front();
+
+				for (auto &l : alert.lots) {
+					if (l.buyout_price < lot.buyout_price) {
+						lot = l;
+					}
+				}
+
 				static std::string last_allert = "";
 				static std::chrono::system_clock::time_point last_time;
 				std::string alert_name = lot.item_id;
@@ -76,7 +84,12 @@ void processResponse(msg::Response&& response) {
 				last_allert = alert_name;
 				last_time = now;
 				std::string price = PriceFormat(lot.buyout_price);
-				send_notify(app::items[lot.item_id], price, app::items[lot.item_id]);
+				std::string label = app::items[lot.item_id];
+				if (lot.qlt) {
+					label += " ";
+					label += qltToStr(*lot.qlt);
+				}
+				send_notify(label, price, app::items[lot.item_id]);
 			}
 		},
 		response.response
@@ -90,12 +103,18 @@ void processResponses() {
 		ss << ws_queue.front();
 		ws_queue.pop();
 
-		msg::Response response;
-		{
-			cereal::JSONInputArchive archive(ss);
-			archive(response);
-		}
-		processResponse(std::move(response));
+		//try {
+			msg::Response response;
+			{
+				cereal::JSONInputArchive archive(ss);
+				archive(response);
+			}
+			processResponse(std::move(response));
+		/*} catch (std::runtime_error &err) {
+			printf("runtime_error %s\n", err.what());
+		} catch (std::exception &err) {
+			printf("exception %s\n", err.what());
+		}*/
 	}
 }
 

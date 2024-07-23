@@ -269,9 +269,9 @@ std::optional<msg::Lot> parseLot(nlohmann::json &j) {
 			lot.qlt = additional["qlt"].get<size_t>();
 		}
 
-		if (additional.contains("stats_random")) {
-			lot.stats_random = additional["stats_random"].get<size_t>();
-		}
+		//if (additional.contains("stats_random")) {
+			//lot.stats_random = additional["stats_random"].get<size_t>();
+		//}
 	}
 
 	if (j.contains("itemId")) {
@@ -316,6 +316,9 @@ void poolingLots(SCAPI& scapi, WsServer& server, const Config& config) {
 					continue;
 				}
 				auto &lot = *lot_o;
+				if (lot.buyout_price == 0) {
+					continue;
+				}
 				for (auto& alert: alerts) {
 					if (check_alert(lot, alert.first)) {
 						lot.alert_ids.push_back(alert.second);
@@ -335,16 +338,31 @@ void poolingLots(SCAPI& scapi, WsServer& server, const Config& config) {
 		}
 
 		std::this_thread::sleep_for(config.sc_api_poll_rate);
+
+		{
+			std::stringstream ss;
+			{
+				cereal::JSONOutputArchive archive(ss);
+				archive(persistent::alerts);
+			}
+			std::ofstream f("alerts.json");
+			f << ss.str();
+		}
 	}
 }
 
 int main() {
 	Config config("config.json");
+
+	if (std::filesystem::exists("alerts.json")) {
+		std::ifstream f("alerts.json");
+		{
+			cereal::JSONInputArchive archive(f);
+			archive(persistent::alerts);
+		}
+	}
+
 	SCAPI scapi(config.sc_api_id, config.sc_api_secret);
-	/*persistent::alerts[1] = {.item = "test", .enabled = true, .price = 15000, .qlt = 3, .percent = 5, .ptn = 2};
-	persistent::alerts[2]
-	  = {.item = "some", .enabled = false, .price = 15000000, .qlt = 1, .percent = 33, .ptn = std::nullopt};
-	*/
 	getItems();
 	WsServer server;
 	server.config.port = port;
