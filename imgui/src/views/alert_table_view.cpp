@@ -146,7 +146,19 @@ void AlertTableView::RenderItemTable(const ImVec2& wContentSize) {
 		std::vector<size_t> alert_ids;
 		for (auto& alert: app::alerts)
 			alert_ids.push_back(alert.first);
-		std::sort(alert_ids.begin(), alert_ids.end(), [](auto& a, auto& b) -> bool {
+
+		auto is_active = [] (msg::Alert &alert) -> bool {
+			return alert.min_price <= alert.price && alert.min_price != 0;
+		};
+
+		std::sort(alert_ids.begin(), alert_ids.end(), [&](auto& a, auto& b) -> bool {
+			auto &a_alert = app::alerts[a];
+			auto &b_alert = app::alerts[b];
+			bool a_active = is_active(a_alert);
+			bool b_active = is_active(b_alert);
+			if (a_active != b_active) {
+				return a_active > b_active;
+			}
 			return app::alerts[a].item > app::alerts[b].item;
 		});
 		for (auto alert_id: alert_ids) {
