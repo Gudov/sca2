@@ -350,6 +350,15 @@ void pollLots(SCAPI& scapi, WsServer& server, const Config& config) {
 
 int main() {
 	Config config(getExecutablePath() / "config.json");
+
+	if (std::filesystem::exists("alerts.json")) {
+		std::ifstream f("alerts.json");
+		{
+			cereal::JSONInputArchive archive(f);
+			archive(persistent::alerts);
+		}
+	}
+
 	SCAPI scapi(config.sc_api_id, config.sc_api_secret);
 	getItems();
 
