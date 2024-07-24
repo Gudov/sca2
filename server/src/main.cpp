@@ -84,18 +84,12 @@ constexpr int port = 8001;
 void update_stalcraft_git(const std::filesystem::path db_path) {
 	if (!std::filesystem::exists(db_path)) {
 		std::string command = "git clone https://github.com/EXBO-Studio/stalcraft-database/ " + db_path.string();
-		printf("start: %s\n", command.c_str());
 		int result = std::system(command.c_str());
-		printf("finish git: %d\n", result);
-
 		if (result != 0)
 			throw std::runtime_error("Failed to clone the repository. Error code: " + std::to_string(result));
 	} else {
 		std::string command = "cd " + db_path.string() + " && git pull";
-		printf("start: %s\n", command.c_str());
 		int result = std::system(command.c_str());
-		printf("finish git: %d\n", result);
-
 		if (result != 0)
 			throw std::runtime_error("Failed to update the repository. Error code: " + std::to_string(result));
 	}
@@ -129,24 +123,15 @@ void sendResponse(msg::Response&& response, std::shared_ptr<WsServer::Connection
 }
 
 std::unordered_map<std::string, std::string> getItems() {
-	using namespace std::chrono_literals;
-	const std::chrono::system_clock::duration period = 10s;
-	static std::chrono::system_clock::time_point last;
-	static bool init = false;
-	const auto now = std::chrono::system_clock::now();
-	bool update = false;
-	if (!init) {
-		init = true;
-		update = true;
-		last = now;
-	} else if (now - last < period) {
-		update = true;
-	}
-
+	static const std::chrono::seconds period(10);
+	static std::chrono::system_clock::time_point last_update;
 	static std::unordered_map<std::string, std::string> items;
-	if (update) {
+	const auto now = std::chrono::system_clock::now();
+
+	if (items.empty() || now - last_update >= period) {
 		items = parseDatabase(getItemDB() / "ru" / "items");
-		printf("loaded: %lu items\n", items.size());
+		last_update = now;
+		std::printf("loaded: %lu items\n", items.size());
 	}
 
 	return items;
@@ -218,28 +203,29 @@ void parseLots(nlohmann::json& json, std::vector<nlohmann::json>& result) {
 
 std::vector<nlohmann::json> loadAll(SCAPI& scapi, const std::string& id) {
 	printf("request all: %s\n", id.c_str());
-	int total;
-	std::vector<nlohmann::json> result;
-	auto active = scapi.getActiveLots(
-	  {.region_id = "RU", .item_id = id, .limit = 200, .offset = 0, .additional = true},
-	  Sort::Criterion::BuyoutPrice,
-	  Sort::Order::Ascending
-	);
-	parseLots(active, result);
-	total = active["total"].get<int>();
 
-	int offset;
-	total -= 200;
-	offset += 200;
-	while (total > 0) {
+	std::vector<nlohmann::json> result;
+	size_t limit = 200;
+	size_t offset = 0;
+
+	auto fetchAndParse = [&](size_t currentOffset) {
 		auto active = scapi.getActiveLots(
-		  {.region_id = "RU", .item_id = id, .limit = 200, .offset = size_t(offset), .additional = true},
+		  {.region_id = "RU", .item_id = id, .limit = limit, .offset = currentOffset, .additional = true},
 		  Sort::Criterion::BuyoutPrice,
 		  Sort::Order::Ascending
 		);
 		parseLots(active, result);
-		total -= 200;
-		offset += 200;
+		return active["total"].get<int>();
+	};
+
+	int total = fetchAndParse(offset);
+	offset += limit;
+	total -= limit;
+
+	while (total > 0) {
+		fetchAndParse(offset);
+		offset += limit;
+		total -= limit;
 	}
 
 	printf("loaded lots for: %s %lu\n", id.c_str(), result.size());
@@ -288,13 +274,16 @@ std::optional<msg::Lot> parseLot(nlohmann::json& j) {
 	return lot;
 }
 
-void poolingLots(SCAPI& scapi, WsServer& server, const Config& config) {
+void pollLots(SCAPI& scapi, WsServer& server, const Config& config) {
 	using namespace std::chrono_literals;
+
 	while (true) {
 		std::unordered_map<std::string, std::vector<size_t>> c_alerts;
+
 		for (auto& [id, alert]: persistent::alerts) {
 			if (alert.enabled)
 				c_alerts[alert.item].push_back(id);
+
 			alert.min_price = 0;
 		}
 
@@ -307,6 +296,7 @@ void poolingLots(SCAPI& scapi, WsServer& server, const Config& config) {
 
 		for (auto& [id, alerts_ids]: c_alerts) {
 			auto active = loadAll(scapi, id);
+
 			for (auto& lot_json: active) {
 				auto lot_o = parseLot(lot_json);
 				if (!lot_o) {
@@ -314,21 +304,25 @@ void poolingLots(SCAPI& scapi, WsServer& server, const Config& config) {
 					printf("broken lot %s\n", broken_lot.c_str());
 					continue;
 				}
+
 				auto& lot = *lot_o;
 				if (lot.buyout_price == 0)
 					continue;
+
 				for (auto& alert_id: alerts_ids) {
 					auto& alert = persistent::alerts[alert_id];
 					if (check_alert(lot, alert)) {
 						if (lot.buyout_price <= alert.price + 1)
 							lot.alert_ids.push_back(alert_id);
 						// printf("buyout_price %lu %lu\n", lot.buyout_price, alert.min_price);
+
 						if (lot.buyout_price < alert.min_price || alert.min_price == 0) {
 							// printf("buyout_price\n");
 							alert.min_price = lot.buyout_price;
 						}
 					}
 				}
+
 				if (!lot.alert_ids.empty())
 					alertItems.lots.push_back(lot);
 			}
@@ -355,18 +349,10 @@ void poolingLots(SCAPI& scapi, WsServer& server, const Config& config) {
 }
 
 int main() {
-	Config config("config.json");
-
-	if (std::filesystem::exists("alerts.json")) {
-		std::ifstream f("alerts.json");
-		{
-			cereal::JSONInputArchive archive(f);
-			archive(persistent::alerts);
-		}
-	}
-
+	Config config(getExecutablePath() / "config.json");
 	SCAPI scapi(config.sc_api_id, config.sc_api_secret);
 	getItems();
+
 	WsServer server;
 	server.config.port = port;
 	auto& echo = server.endpoint["^/echo/?$"];
@@ -404,9 +390,9 @@ int main() {
 		server.start([&server_port](unsigned short port) { server_port.set_value(port); });
 	});
 
-	std::thread pooling([&] { poolingLots(scapi, server, config); });
+	std::thread polling([&] { pollLots(scapi, server, config); });
 
 	std::cout << "Server listening on port " << server_port.get_future().get() << std::endl;
 	server_thread.join();
-	pooling.join();
+	polling.join();
 }
