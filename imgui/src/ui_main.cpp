@@ -44,10 +44,10 @@ void CreateNewView(const ViewType& type) {
 	const auto& position = ImVec2(posDistX(gen), posDistY(gen));
 
 	switch (type) {
-		case ViewType::Empty:	   createView<::View>(position, ImVec2(350, 350), ""); break;
+		case ViewType::Empty:      createView<::View>(position, ImVec2(350, 350), ""); break;
 		case ViewType::ItemList:   createView<ItemListView>(position, ImVec2(300, 350), "Item list"); break;
 		case ViewType::AlertTable: createView<AlertTableView>(position, ImVec2(600, 350), "Table of alerts"); break;
-		case ViewType::History:	   createView<HistoryView>(position, ImVec2(600, 350), "Price history"); break;
+		case ViewType::History:    createView<HistoryView>(position, ImVec2(600, 350), "Price history"); break;
 	}
 }
 
@@ -75,9 +75,9 @@ void draw_ui() {
 	ImGui::SetNextWindowViewport(viewport->ID);
 
 	ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_MenuBar
-								   | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoDocking
-								   | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove
-								   | ImGuiWindowFlags_NoBringToFrontOnFocus;
+	                               | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoDocking
+	                               | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove
+	                               | ImGuiWindowFlags_NoBringToFrontOnFocus;
 
 	if (bool open = true; !ImGui::Begin("Main ", &open, windowFlags)) {
 		ImGui::End();
@@ -117,19 +117,19 @@ void draw_ui() {
 
 	if (ImGui::BeginPopupModal("Preferences")) {
 		/*static int pollRateSec = 2;//std::chrono::duration_cast<std::chrono::seconds>(app->settings.pollRate).count();
-				ImGui::Text("Auction polling rate (seconds)");
-				ImGui::InputInt("##pollrate", &pollRateSec);
+		        ImGui::Text("Auction polling rate (seconds)");
+		        ImGui::InputInt("##pollrate", &pollRateSec);
 
-				if (ImGui::Button("OK")) {
-						//app->settings.pollRate = std::chrono::seconds(pollRateSec);
-						ImGui::CloseCurrentPopup();
-				}
+		        if (ImGui::Button("OK")) {
+		                //app->settings.pollRate = std::chrono::seconds(pollRateSec);
+		                ImGui::CloseCurrentPopup();
+		        }
 
-				ImGui::SameLine();
+		        ImGui::SameLine();
 
-				if (ImGui::Button("Cancel")) {
-						ImGui::CloseCurrentPopup();
-				}*/
+		        if (ImGui::Button("Cancel")) {
+		                ImGui::CloseCurrentPopup();
+		        }*/
 		ImGui::EndPopup();
 	}
 

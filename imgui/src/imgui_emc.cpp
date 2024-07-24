@@ -46,7 +46,7 @@ int init_gl() {
 		return 1;
 	}
 
-	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);	// We don't want the old OpenGL
+	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);  // We don't want the old OpenGL
 
 	// Open a window and create its OpenGL context
 	int canvasWidth = g_width;
@@ -247,8 +247,8 @@ void begin_draw() {
 		ImGui::SetNextWindowPos(
 		  ImVec2(650, 20),
 		  ImGuiCond_FirstUseEver
-		);	// Normally user code doesn't need/want to call this because positions are saved in .ini file anyway. Here
-			// we just want to make the demo initial state a bit more friendly!
+		);  // Normally user code doesn't need/want to call this because positions are saved in .ini file anyway. Here
+		    // we just want to make the demo initial state a bit more friendly!
 		ImGui::ShowDemoWindow(&show_demo_window);
 	}
 }

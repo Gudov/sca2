@@ -103,7 +103,7 @@ SpacesInSquareBrackets: false
 Standard: Latest
 IndentWidth: 4
 TabWidth: 4
-UseTab: Always
+UseTab: AlignWithSpaces
 AlignConsecutiveAssignments:
   Enabled: false
   AcrossEmptyLines: false

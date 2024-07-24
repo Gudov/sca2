@@ -18,24 +18,24 @@ std::string PriceFormat(double value) {
 
 std::string qltToStr(int qlt, std::string len) {
 	switch (qlt) {
-		case 0:	 return "обычный";
-		case 1:	 return "необычный";
-		case 2:	 return "особый";
-		case 3:	 return "редкий";
-		case 4:	 return "исключительный";
-		case 5:	 return "легендарный";
+		case 0:  return "обычный";
+		case 1:  return "необычный";
+		case 2:  return "особый";
+		case 3:  return "редкий";
+		case 4:  return "исключительный";
+		case 5:  return "легендарный";
 		default: return "wrong qlt";
 	}
 }
 
 ImVec4 qltToColor(int qlt) {
 	switch (qlt) {
-		case 0:	 return ImVec4(1, 1, 1, 1);
-		case 1:	 return ImVec4(0.33f, 1, 0.33f, 1);
-		case 2:	 return ImVec4(0.33f, 0.33f, 1, 1);
-		case 3:	 return ImVec4(0.58f, 0, 0.58f, 1);
-		case 4:	 return ImVec4(0.77f, 0.34f, 0.25f, 1);
-		case 5:	 return ImVec4(0.73f, 0.58f, 0.125f, 1);
+		case 0:  return ImVec4(1, 1, 1, 1);
+		case 1:  return ImVec4(0.33f, 1, 0.33f, 1);
+		case 2:  return ImVec4(0.33f, 0.33f, 1, 1);
+		case 3:  return ImVec4(0.58f, 0, 0.58f, 1);
+		case 4:  return ImVec4(0.77f, 0.34f, 0.25f, 1);
+		case 5:  return ImVec4(0.73f, 0.58f, 0.125f, 1);
 		default: return ImVec4(0.5f, 0.5f, 0.5f, 0.5f);
 	}
 }

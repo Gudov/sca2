@@ -379,7 +379,7 @@ int main() {
 				if (ec) {
 					std::cout << "Server: Error sending message. " <<
 					  // See http://www.boost.org/doc/libs/1_55_0/doc/html/boost_asio/reference.html, Error
-					  // Codes for error code meanings
+				      // Codes for error code meanings
 					  "Error: " << ec << ", error message: " << ec.message() << std::endl;
 				}
 			});
