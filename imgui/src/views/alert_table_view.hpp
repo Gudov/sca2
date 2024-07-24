@@ -1,3 +1,5 @@
+#pragma once
+
 #include "view.hpp"
 
 class AlertTableView : public View {

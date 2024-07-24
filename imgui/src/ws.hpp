@@ -13,11 +13,11 @@ void connect_to_ws(const std::string& url);
 bool is_connected();
 
 enum WsStatus {
-    connecting,
-    connected,
-    error,
-    closed,
-    empty
+	connecting,
+	connected,
+	error,
+	closed,
+	empty
 };
 
 WsStatus get_ws_status();

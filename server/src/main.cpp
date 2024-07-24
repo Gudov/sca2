@@ -1,14 +1,15 @@
 #include <nlohmann/json.hpp>
+#include <cereal/cereal.hpp>
+#include <cereal/archives/json.hpp>
+#include <websocket/server_ws.hpp>
+
 #include <optional>
 #include <thread>
 #include <utility>
 #include <variant>
 #include <vector>
-#include <websocket/server_ws.hpp>
 
 #include <sstream>
-#include <cereal/cereal.hpp>
-#include <cereal/archives/json.hpp>
 #include <cstdlib>
 #include <unordered_map>
 #include <chrono>
@@ -153,9 +154,8 @@ std::unordered_map<std::string, std::string> getItems() {
 
 void processRequest(msg::Request&& request, std::shared_ptr<WsServer::Connection>& connection) {
 	bool ip_match = auth.contains(connection->remote_endpoint().address().to_string());
-	if (!ip_match && !std::holds_alternative<msg::RequestPassword>(request.request)) {
+	if (!ip_match && !std::holds_alternative<msg::RequestPassword>(request.request))
 		return;
-	}
 	std::visit(
 	  overloaded{
 		[&](msg::RequestPing& ping) {
@@ -248,49 +248,42 @@ std::vector<nlohmann::json> loadAll(SCAPI& scapi, const std::string& id) {
 }
 
 bool check_alert(msg::Lot& lot, msg::Alert& alert) {
-	if (alert.qlt && (!lot.qlt || *lot.qlt < *alert.qlt)) {
+	if (alert.qlt && (!lot.qlt || *lot.qlt < *alert.qlt))
 		return false;
-	}
 
-	if (alert.ptn && (!lot.ptn || *lot.ptn < *alert.ptn)) {
+	if (alert.ptn && (!lot.ptn || *lot.ptn < *alert.ptn))
 		return false;
-	}
 
 	return true;
 }
 
-std::optional<msg::Lot> parseLot(nlohmann::json &j) {
+std::optional<msg::Lot> parseLot(nlohmann::json& j) {
 	msg::Lot lot;
 	if (j.contains("additional")) {
 		auto additional = j["additional"];
 		if (additional.contains("bonus_properties")) {
 			std::vector<std::string> bonus_properties;
-			for (auto &[_, prop] : additional["bonus_properties"].items()) {
+			for (auto& [_, prop]: additional["bonus_properties"].items())
 				bonus_properties.push_back(prop);
-			}
 			lot.bonus_properties = bonus_properties;
 		}
 
-		if (additional.contains("ptn")) {
+		if (additional.contains("ptn"))
 			lot.ptn = additional["ptn"].get<size_t>();
-		}
 
-		if (additional.contains("qlt")) {
+		if (additional.contains("qlt"))
 			lot.qlt = additional["qlt"].get<size_t>();
-		}
 	}
 
-	if (j.contains("itemId")) {
+	if (j.contains("itemId"))
 		lot.item_id = j["itemId"].get<std::string>();
-	} else {
+	else
 		return std::nullopt;
-	}
 
-	if (j.contains("buyoutPrice")) {
+	if (j.contains("buyoutPrice"))
 		lot.buyout_price = j["buyoutPrice"].get<size_t>();
-	} else {
+	else
 		return std::nullopt;
-	}
 
 	return lot;
 }
@@ -300,9 +293,8 @@ void poolingLots(SCAPI& scapi, WsServer& server, const Config& config) {
 	while (true) {
 		std::unordered_map<std::string, std::vector<size_t>> c_alerts;
 		for (auto& [id, alert]: persistent::alerts) {
-			if (alert.enabled) {
+			if (alert.enabled)
 				c_alerts[alert.item].push_back(id);
-			}
 			alert.min_price = 0;
 		}
 
@@ -322,36 +314,31 @@ void poolingLots(SCAPI& scapi, WsServer& server, const Config& config) {
 					printf("broken lot %s\n", broken_lot.c_str());
 					continue;
 				}
-				auto &lot = *lot_o;
-				if (lot.buyout_price == 0) {
+				auto& lot = *lot_o;
+				if (lot.buyout_price == 0)
 					continue;
-				}
 				for (auto& alert_id: alerts_ids) {
-					auto &alert = persistent::alerts[alert_id];
+					auto& alert = persistent::alerts[alert_id];
 					if (check_alert(lot, alert)) {
-						if (lot.buyout_price <= alert.price+1) {
+						if (lot.buyout_price <= alert.price + 1)
 							lot.alert_ids.push_back(alert_id);
-						}
-						//printf("buyout_price %lu %lu\n", lot.buyout_price, alert.min_price);
+						// printf("buyout_price %lu %lu\n", lot.buyout_price, alert.min_price);
 						if (lot.buyout_price < alert.min_price || alert.min_price == 0) {
-							//printf("buyout_price\n");
+							// printf("buyout_price\n");
 							alert.min_price = lot.buyout_price;
 						}
 					}
 				}
-				if (!lot.alert_ids.empty()) {
+				if (!lot.alert_ids.empty())
 					alertItems.lots.push_back(lot);
-				}
 			}
 		}
 
 		alertItems.alerts = persistent::alerts;
 		auto connections = server.get_connections();
-		for (auto conn : connections) {
-			if (auth.contains(conn->remote_endpoint().address().to_string())) {
+		for (auto conn: connections)
+			if (auth.contains(conn->remote_endpoint().address().to_string()))
 				sendResponse(msg::Response{alertItems}, conn);
-			}
-		}
 
 		std::this_thread::sleep_for(config.sc_api_poll_rate);
 

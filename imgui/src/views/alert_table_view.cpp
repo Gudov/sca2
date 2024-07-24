@@ -1,14 +1,15 @@
-#include "alert_table_view.hpp"
-#include "app.hpp"
-#include "imgui.h"
-#include "imgui_internal.h"
-#include "misc/cpp/imgui_stdlib.h"
-#include "str_utils.hpp"
+#include <imgui.h>
+#include <imgui_internal.h>
+#include <misc/cpp/imgui_stdlib.h>
+
 #include <algorithm>
 #include <cstring>
 #include <optional>
 #include <vector>
 
+#include "str_utils.hpp"
+#include "app.hpp"
+#include "alert_table_view.hpp"
 #include "ws.hpp"
 #include "messages.hpp"
 
@@ -24,9 +25,7 @@ std::optional<int> inputOptionalInt(const std::string& name, std::string& v, siz
 		return std::nullopt;
 	try {
 		return std::stoi(v);
-	} catch (const std::invalid_argument& ia) {
-		return std::nullopt;
-	}
+	} catch (const std::invalid_argument& ia) { return std::nullopt; }
 }
 
 }  // namespace
@@ -101,9 +100,9 @@ void AlertTableView::RenderAlertControls() {
 
 	if (ImGui::Button("add/edit") && itemID.has_value() && rub_v.has_value()) {
 		sendRequest({msg::RequestAddAlert{
-			.id = id_v.value_or(getNewId()),
-			.alert
-			= {.item = *itemID, .enabled = enabled_v, .price = (size_t)*rub_v, .qlt = qlt_v, .percent = percent_v, .ptn = ptn_v}
+		  .id = id_v.value_or(getNewId()),
+		  .alert
+		  = {.item = *itemID, .enabled = enabled_v, .price = (size_t)*rub_v, .qlt = qlt_v, .percent = percent_v, .ptn = ptn_v}
 		}});
 		id_v = std::nullopt;
 		rub = "";
@@ -145,14 +144,13 @@ void AlertTableView::RenderItemTable(const ImVec2& wContentSize) {
 		ImGui::TableSetupColumn("Remove", ImGuiTableColumnFlags_WidthFixed, 60);
 		ImGui::TableHeadersRow();
 		std::vector<size_t> alert_ids;
-		for (auto &alert : app::alerts) {
+		for (auto& alert: app::alerts)
 			alert_ids.push_back(alert.first);
-		}
-		std::sort(alert_ids.begin(), alert_ids.end(), [] (auto &a, auto &b) -> bool {
+		std::sort(alert_ids.begin(), alert_ids.end(), [](auto& a, auto& b) -> bool {
 			return app::alerts[a].item > app::alerts[b].item;
 		});
-		for (auto alert_id : alert_ids) {
-			auto &alert = app::alerts[alert_id];
+		for (auto alert_id: alert_ids) {
+			auto& alert = app::alerts[alert_id];
 			std::string trackedItemName;
 			if (app::items.contains(alert.item)) {
 				trackedItemName = app::items.at(alert.item);

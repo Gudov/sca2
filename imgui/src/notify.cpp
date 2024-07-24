@@ -1,4 +1,5 @@
-#include "emscripten.h"
+#include <emscripten.h>
+
 #include "notify.hpp"
 
 namespace {
@@ -8,7 +9,7 @@ EM_JS(void, notify, (
 	const char* title_c, int title_len,
 	const char* body_c, int body_len,
 	const char* clip_c, int clip_len),
-  { 
+  {
 	var audio = new Audio('inugami-korone-beep-beep-beep.mp3');
 	audio.play();
 
@@ -46,12 +47,11 @@ EM_JS(void, notify, (
 );
 // clang-format on
 
+}  // namespace
+
+void send_notify(const msg::Notify& notify) { send_notify(notify.label, notify.body, notify.clip); }
+
+void send_notify(const std::string& title, const std::string& body, const std::string& clip) {
+	notify(title.c_str(), title.size(), body.c_str(), body.size(), clip.c_str(), clip.size());
 }
 
-void send_notify(const msg::Notify &notify) {
-    send_notify(notify.label, notify.body, notify.clip);
-}
-
-void send_notify(const std::string &title, const std::string &body, const std::string &clip) {
-    notify(title.c_str(), title.size(), body.c_str(), body.size(), clip.c_str(), clip.size());
-}

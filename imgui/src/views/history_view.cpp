@@ -1,7 +1,7 @@
 #include "history_view.hpp"
 
 HistoryView::HistoryView(const bool& open, const ImVec2& pos, const ImVec2& size, const std::string& title) :
-		View(open, pos, size, title) {
+	View(open, pos, size, title) {
 	lastDay = std::chrono::system_clock::now();
 }
 

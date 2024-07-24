@@ -1,6 +1,7 @@
+#include <unordered_map>
+
 #include "app.hpp"
 #include "messages.hpp"
-#include <unordered_map>
 
 namespace app {
 
@@ -9,4 +10,4 @@ std::unordered_map<std::string, std::string> items;
 std::unordered_map<size_t, msg::Alert> alerts;
 bool auth;
 
-}	 // namespace app
+}  // namespace app

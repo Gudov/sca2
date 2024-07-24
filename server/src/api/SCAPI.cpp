@@ -1,6 +1,7 @@
+#include <cpr/ssl_options.h>
+
 #include "SCAPI.hpp"
 #include "api/ServerErrorException.hpp"
-#include "cpr/ssl_options.h"
 
 namespace {
 
@@ -104,4 +105,3 @@ nlohmann::json
 	nlohmann::json data = nlohmann::json::parse(get(url, params).text);
 	return data;
 }
-

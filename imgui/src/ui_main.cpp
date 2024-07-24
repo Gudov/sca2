@@ -1,18 +1,13 @@
-#include "ui_main.hpp"
+#include <emscripten.h>
+#include <imgui.h>
 
 #include <algorithm>
 #include <string>
 #include <random>
-#include <fstream>
-
-#include <emscripten.h>
-
-#include "app.hpp"
-#include "imgui.h"
-#include "imgui_impl_glfw.h"
-#include "imgui_impl_opengl3.h"
 
 #include "version.hpp"
+#include "app.hpp"
+#include "ui_main.hpp"
 #include "messages.hpp"
 #include "ws.hpp"
 #include "views/view.hpp"
@@ -49,29 +44,10 @@ void CreateNewView(const ViewType& type) {
 	const auto& position = ImVec2(posDistX(gen), posDistY(gen));
 
 	switch (type) {
-		case ViewType::Empty:
-			{
-				createView<::View>(position, ImVec2(350, 350), "");
-				break;
-			}
-
-		case ViewType::ItemList:
-			{
-				createView<ItemListView>(position, ImVec2(300, 350), "Item list");
-				break;
-			}
-
-		case ViewType::AlertTable:
-			{
-				createView<AlertTableView>(position, ImVec2(600, 350), "Table of alerts");
-				break;
-			}
-
-		case ViewType::History:
-			{
-				createView<HistoryView>(position, ImVec2(600, 350), "Price history");
-				break;
-			}
+		case ViewType::Empty:	   createView<::View>(position, ImVec2(350, 350), ""); break;
+		case ViewType::ItemList:   createView<ItemListView>(position, ImVec2(300, 350), "Item list"); break;
+		case ViewType::AlertTable: createView<AlertTableView>(position, ImVec2(600, 350), "Table of alerts"); break;
+		case ViewType::History:	   createView<HistoryView>(position, ImVec2(600, 350), "Price history"); break;
 	}
 }
 
@@ -127,9 +103,8 @@ void draw_ui() {
 			ImGui::EndMenu();
 		}
 
-		if (ImGui::Button("Notify")) {
+		if (ImGui::Button("Notify"))
 			send_notify("test notify", "test body", "test clip");
-		}
 
 		ImGui::Text("| client: %d %s |", BUILD_NUMBER, BUILD_VERSION);
 		ImGui::Text("server: %d %s", app::server_version.build_number, app::server_version.version.c_str());

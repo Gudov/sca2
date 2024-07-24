@@ -1,21 +1,21 @@
-#include "imgui_emc.hpp"
-#include "implot/implot.h"
+#include <imgui.h>
+#include <imgui_impl_glfw.h>
+#include <imgui_impl_opengl3.h>
 
-#include <cstddef>
-#include <stdio.h>
-#include <string>
+#include <implot/implot.h>
 
 #include <emscripten.h>
 #include <emscripten/websocket.h>
-#include <vector>
 
 #define GLFW_INCLUDE_ES3
 #include <GLES3/gl3.h>
 #include <GLFW/glfw3.h>
 
-#include "imgui.h"
-#include "imgui_impl_glfw.h"
-#include "imgui_impl_opengl3.h"
+#include <cstddef>
+#include <stdio.h>
+#include <string>
+
+#include "imgui_emc.hpp"
 
 int g_width;
 int g_height;
@@ -58,7 +58,7 @@ int init_gl() {
 		glfwTerminate();
 		return -1;
 	}
-	glfwMakeContextCurrent(g_window);	 // Initialize GLEW
+	glfwMakeContextCurrent(g_window);  // Initialize GLEW
 
 	return 0;
 }
@@ -82,7 +82,7 @@ void StyleColorsApp() {
 	style.WindowBorderSize = style.ChildBorderSize = style.PopupBorderSize = style.TabBorderSize = 0;
 	style.FrameBorderSize = 1;
 	style.WindowRounding = style.ChildRounding = style.PopupRounding = style.ScrollbarRounding = style.GrabRounding
-		= style.TabRounding = 4;
+	  = style.TabRounding = 4;
 
 	ImVec4* colors = ImGui::GetStyle().Colors;
 	colors[ImGuiCol_Text] = ImVec4(0.90f, 0.90f, 0.90f, 1.00f);
@@ -162,16 +162,16 @@ void StyleColorsApp() {
 	pstyle.AnnotationPadding = {4, 2};
 
 	const ImU32 Dracula[] = {
-		4288967266,
-		4285315327,
-		4286315088,
-		4283782655,
-		4294546365,
-		4287429361,
-		4291197439,
-		4294830475,
-		4294113528,
-		4284106564
+	  4288967266,
+	  4285315327,
+	  4286315088,
+	  4283782655,
+	  4294546365,
+	  4287429361,
+	  4291197439,
+	  4294830475,
+	  4294113528,
+	  4284106564
 	};
 	ImPlot::GetStyle().Colormap = ImPlot::AddColormap("Dracula", Dracula, 10);
 }
@@ -209,12 +209,15 @@ int init_imgui() {
 
 	const std::string font = "SauceCodeProNerdFont-Regular.ttf";
 	static const ImWchar ranges[] = {
-		0x0020, 0x00FF, // Basic Latin + Latin Supplement
-		0x0400, 0x044F, // Cyrillic
-		ICON_MIN_FA, ICON_MAX_FA,
-		0,
+	  0x0020,
+	  0x00FF,  // Basic Latin + Latin Supplement
+	  0x0400,
+	  0x044F,  // Cyrillic
+	  ICON_MIN_FA,
+	  ICON_MAX_FA,
+	  0,
 	};
-	
+
 	io.Fonts->AddFontFromFileTTF(font.c_str(), 15.0f, &iconConfig, ranges);
 
 	io.Fonts->Build();
@@ -241,7 +244,11 @@ void begin_draw() {
 
 	static bool show_demo_window = true;
 	if (show_demo_window) {
-		ImGui::SetNextWindowPos(ImVec2(650, 20), ImGuiCond_FirstUseEver); // Normally user code doesn't need/want to call this because positions are saved in .ini file anyway. Here we just want to make the demo initial state a bit more friendly!
+		ImGui::SetNextWindowPos(
+		  ImVec2(650, 20),
+		  ImGuiCond_FirstUseEver
+		);	// Normally user code doesn't need/want to call this because positions are saved in .ini file anyway. Here
+			// we just want to make the demo initial state a bit more friendly!
 		ImGui::ShowDemoWindow(&show_demo_window);
 	}
 }

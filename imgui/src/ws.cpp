@@ -1,10 +1,9 @@
-#include "ws.hpp"
-
 #include <emscripten.h>
 #include <emscripten/websocket.h>
-
-#include "config.hpp"
 #include <cereal/archives/json.hpp>
+
+#include "ws.hpp"
+#include "config.hpp"
 
 EMSCRIPTEN_WEBSOCKET_T ws;
 
@@ -66,6 +65,4 @@ void connect_to_ws(const std::string& url) {
 	emscripten_websocket_set_onmessage_callback(ws, NULL, onmessage);
 }
 
-WsStatus get_ws_status() {
-	return ws_status;
-}
+WsStatus get_ws_status() { return ws_status; }

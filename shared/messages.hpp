@@ -1,7 +1,5 @@
 #pragma once
 
-#include <cstddef>
-#include <string>
 #include <cereal/cereal.hpp>
 #include <cereal/types/variant.hpp>
 #include <cereal/types/unordered_map.hpp>
@@ -9,6 +7,10 @@
 #include <cereal/types/array.hpp>
 #include <cereal/types/vector.hpp>
 #include <cereal/archives/binary.hpp>
+
+#include <cstddef>
+#include <string>
+
 #include <unordered_map>
 #include <optional>
 #include <variant>

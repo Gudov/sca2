@@ -12,4 +12,4 @@ extern std::unordered_map<std::string, std::string> items;
 extern std::unordered_map<size_t, msg::Alert> alerts;
 extern bool auth;
 
-}	 // namespace app
+}  // namespace app

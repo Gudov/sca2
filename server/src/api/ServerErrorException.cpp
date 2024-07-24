@@ -1,6 +1,6 @@
-#include "ServerErrorException.hpp"
-
 #include <iostream>
+
+#include "ServerErrorException.hpp"
 
 ServerErrorException::ServerErrorException(const std::string& message) : std::runtime_error(message){};
 
