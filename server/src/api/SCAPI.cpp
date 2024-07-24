@@ -47,23 +47,21 @@ std::string getToken(const std::string& client_id, const std::string& client_sec
 
 namespace Sort {
 std::string to_string(const Sort::Criterion& criterion) {
-	static const std::unordered_map<Sort::Criterion, std::string> map = {
-	  {Sort::Criterion::TimeCreated, "time_created"},
-	  {Sort::Criterion::TimeLeft, "time_left"},
-	  {Sort::Criterion::CurrentPrice, "current_price"},
-	  {Sort::Criterion::BuyoutPrice, "buyout_price"}
-	};
-
-	auto it = map.find(criterion);
-	return it != map.end() ? it->second : "";
+	switch (criterion) {
+		case Sort::Criterion::TimeCreated:  return "time_created";
+		case Sort::Criterion::TimeLeft:     return "time_left";
+		case Sort::Criterion::CurrentPrice: return "current_price";
+		case Sort::Criterion::BuyoutPrice:  return "buyout_price";
+		default:                            return "";
+	}
 }
 
 std::string to_string(const Sort::Order& order) {
-	static const std::unordered_map<Sort::Order, std::string> map
-	  = {{Sort::Order::Ascending, "asc"}, {Sort::Order::Descending, "desc"}};
-
-	auto it = map.find(order);
-	return it != map.end() ? it->second : "";
+	switch (order) {
+		case Sort::Order::Ascending:  return "asc";
+		case Sort::Order::Descending: return "desc";
+		default:                      return "";
+	}
 }
 }  // namespace Sort
 
