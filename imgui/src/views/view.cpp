@@ -1,7 +1,7 @@
 #include "view.hpp"
 
 View::View(const bool& open, const ImVec2 pos, const ImVec2& size, const std::string& title) :
-	isOpen(open),
+	is_open(open),
 	pos(pos),
 	size(size),
 	title(title){};

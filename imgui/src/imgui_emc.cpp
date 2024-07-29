@@ -63,7 +63,7 @@ int init_gl() {
 	return 0;
 }
 
-void StyleColorsApp() {
+void applyImStyle() {
 	static const auto bg_dark = ImVec4(0.10f, 0.10f, 0.10f, 1.00f);
 	static const auto bg_mid = ImVec4(0.15f, 0.15f, 0.15f, 1.00f);
 	static const auto accent_dark = ImVec4(0.30f, 0.30f, 0.30f, 1.000f);
@@ -190,7 +190,7 @@ int init_imgui() {
 	ImGui::StyleColorsDark();
 
 	resizeCanvas();
-	StyleColorsApp();
+	applyImStyle();
 
 	ImGuiIO& io = ImGui::GetIO();
 

@@ -2,7 +2,7 @@
 
 #include "str_utils.hpp"
 
-int PriceFormat(double value, char* buff, int size, void*) {
+int formatPrice(double value, char* buff, int size, void*) {
 	if (value >= 1'000'000)
 		return snprintf(buff, size, "%.2lfM", value / 1'000'000);
 	if (value >= 1'000)
@@ -10,9 +10,9 @@ int PriceFormat(double value, char* buff, int size, void*) {
 	return snprintf(buff, size, "%lu", size_t(value));
 }
 
-std::string PriceFormat(double value) {
+std::string formatPrice(double value) {
 	char buff[256];
-	PriceFormat(value, buff, 255, nullptr);
+	formatPrice(value, buff, 255, nullptr);
 	return buff;
 }
 

@@ -51,6 +51,11 @@ std::unordered_set<std::string> auth;
 
 constexpr int port = 8001;
 
+namespace persistent {
+std::unordered_map<size_t, msg::Alert> alerts;
+std::unordered_map<size_t, std::unordered_set<size_t>> tabs;
+}  // namespace persistent
+
 [[nodiscard]] std::filesystem::path getExecutablePath() noexcept {
 	std::error_code ec;
 	auto path = std::filesystem::read_symlink("/proc/self/exe", ec);
@@ -81,7 +86,7 @@ constexpr int port = 8001;
 	return map;
 }
 
-void update_stalcraft_git(const std::filesystem::path db_path) {
+void updateDB(const std::filesystem::path db_path) {
 	if (!std::filesystem::exists(db_path)) {
 		std::string command = "git clone https://github.com/EXBO-Studio/stalcraft-database/ " + db_path.string();
 		int result = std::system(command.c_str());
@@ -97,13 +102,9 @@ void update_stalcraft_git(const std::filesystem::path db_path) {
 
 [[nodiscard]] std::filesystem::path getItemDB() {
 	const std::filesystem::path db_path = getExecutablePath() / "db";
-	update_stalcraft_git(db_path);
+	updateDB(db_path);
 	return db_path;
 }
-
-namespace persistent {
-std::unordered_map<size_t, msg::Alert> alerts;
-}  // namespace persistent
 
 void sendResponse(msg::Response&& response, std::shared_ptr<WsServer::Connection>& connection) {
 	std::stringstream ss;
@@ -122,8 +123,9 @@ void sendResponse(msg::Response&& response, std::shared_ptr<WsServer::Connection
 	});
 }
 
+// TODO: Update somewhere else, not when user adds alerts
 std::unordered_map<std::string, std::string> getItems() {
-	static const std::chrono::seconds period(10);
+	static const std::chrono::hours period(1);
 	static std::chrono::system_clock::time_point last_update;
 	static std::unordered_map<std::string, std::string> items;
 	const auto now = std::chrono::system_clock::now();
@@ -144,18 +146,21 @@ void processRequest(msg::Request&& request, std::shared_ptr<WsServer::Connection
 	std::visit(
 	  overloaded{
 		[&](msg::RequestPing& ping) {
-			printf("recieve ping: %s\n", ping.str.c_str());
+			printf("Recieved ping: %s\n", ping.str.c_str());
 			sendResponse({msg::ResponsePing{.str = ping.str}}, connection);
 		},
 		[&](msg::Version& ver) {
-			printf("client connected, version %d %s\n", ver.build_number, ver.version.c_str());
+			printf("Client connected, version %d %s\n", ver.build_number, ver.version.c_str());
 			sendResponse(
 			  {msg::Version{.build_number = BUILD_NUMBER, .version = BUILD_VERSION, .msg_hash = MSG_HASH}},
 			  connection
 			);
 		},
 		[&](msg::RequestItems& r) {
-			sendResponse({msg::ResponseItems{.items = getItems(), .alerts = persistent::alerts}}, connection);
+			sendResponse(
+			  {msg::ResponseItems{.items = getItems(), .alerts = persistent::alerts, .tabs = persistent::tabs}},
+			  connection
+			);
 		},
 		[&](msg::RequestHistory& r) {
 
@@ -163,16 +168,43 @@ void processRequest(msg::Request&& request, std::shared_ptr<WsServer::Connection
 		[&](msg::RequestRemoveAlert& alert) {
 			if (persistent::alerts.contains(alert.id))
 				persistent::alerts.erase(alert.id);
-			sendResponse({msg::ResponseItems{.items = getItems(), .alerts = persistent::alerts}}, connection);
+
+			for (auto& [tab_id, alert_set]: persistent::tabs)
+				if (alert_set.contains(alert.id))
+					alert_set.erase(alert.id);
+
+			sendResponse(
+			  {msg::ResponseItems{.items = getItems(), .alerts = persistent::alerts, .tabs = persistent::tabs}},
+			  connection
+			);
 		},
 		[&](msg::RequestSwitchAlert& alert) {
 			if (persistent::alerts.contains(alert.id))
 				persistent::alerts[alert.id].enabled = alert.state;
-			sendResponse({msg::ResponseItems{.items = getItems(), .alerts = persistent::alerts}}, connection);
+			sendResponse(
+			  {msg::ResponseItems{.items = getItems(), .alerts = persistent::alerts, .tabs = persistent::tabs}},
+			  connection
+			);
 		},
-		[&](msg::RequestAddAlert& alert) {
-			persistent::alerts[alert.id] = alert.alert;
-			sendResponse({msg::ResponseItems{.items = getItems(), .alerts = persistent::alerts}}, connection);
+
+		[&](msg::RequestAddAlert& data) {
+			if (!data.alert.item.empty()) {
+				for (auto& [tab_id, tab_alert_ids]: persistent::tabs) {
+					if (tab_id != data.tab_id && tab_alert_ids.find(data.alert_id) != tab_alert_ids.end()) {
+						tab_alert_ids.erase(data.alert_id);
+						break;
+					}
+				}
+				persistent::tabs[data.tab_id].emplace(data.alert_id);
+				persistent::alerts[data.alert_id] = data.alert;
+			} else {
+				persistent::tabs[data.tab_id];
+			}
+
+			sendResponse(
+			  {msg::ResponseItems{.items = getItems(), .alerts = persistent::alerts, .tabs = persistent::tabs}},
+			  connection
+			);
 		},
 		[&](msg::RequestPassword& pass) {
 			if (pass.password == "1131") {
@@ -186,11 +218,6 @@ void processRequest(msg::Request&& request, std::shared_ptr<WsServer::Connection
 	);
 }
 
-template<typename T>
-void mapToJson(const std::unordered_map<T, T>& map, const std::filesystem::path& output_path) {
-	std::ofstream(output_path) << nlohmann::json(map).dump(4);
-}
-
 void parseLots(nlohmann::json& json, std::vector<nlohmann::json>& result) {
 	auto lots = json["lots"];
 	size_t count = 0;
@@ -198,11 +225,11 @@ void parseLots(nlohmann::json& json, std::vector<nlohmann::json>& result) {
 		result.push_back(lot);
 		count++;
 	}
-	printf("  recived %lu\n", count);
+	printf("Received %lu\n", count);
 }
 
 std::vector<nlohmann::json> loadAll(SCAPI& scapi, const std::string& id) {
-	printf("request all: %s\n", id.c_str());
+	printf("Requested all: %s\n", id.c_str());
 
 	std::vector<nlohmann::json> result;
 	size_t limit = 200;
@@ -228,12 +255,12 @@ std::vector<nlohmann::json> loadAll(SCAPI& scapi, const std::string& id) {
 		total -= limit;
 	}
 
-	printf("loaded lots for: %s %lu\n", id.c_str(), result.size());
+	printf("Loaded lots for: %s %lu\n", id.c_str(), result.size());
 
 	return result;
 }
 
-bool check_alert(msg::Lot& lot, msg::Alert& alert) {
+bool checkAlert(msg::Lot& lot, msg::Alert& alert) {
 	if (alert.qlt && (!lot.qlt || *lot.qlt < *alert.qlt))
 		return false;
 
@@ -300,8 +327,8 @@ void pollLots(SCAPI& scapi, WsServer& server, const Config& config) {
 			for (auto& lot_json: active) {
 				auto lot_o = parseLot(lot_json);
 				if (!lot_o) {
-					std::string broken_lot = lot_json.dump(4);
-					printf("broken lot %s\n", broken_lot.c_str());
+					std::string invalid_lot = lot_json.dump(4);
+					printf("Invalid lot %s\n", invalid_lot.c_str());
 					continue;
 				}
 
@@ -311,15 +338,12 @@ void pollLots(SCAPI& scapi, WsServer& server, const Config& config) {
 
 				for (auto& alert_id: alerts_ids) {
 					auto& alert = persistent::alerts[alert_id];
-					if (check_alert(lot, alert)) {
+					if (checkAlert(lot, alert)) {
 						if (lot.buyout_price <= alert.price + 1)
 							lot.alert_ids.push_back(alert_id);
-						// printf("buyout_price %lu %lu\n", lot.buyout_price, alert.min_price);
 
-						if (lot.buyout_price < alert.min_price || alert.min_price == 0) {
-							// printf("buyout_price\n");
+						if (lot.buyout_price < alert.min_price || alert.min_price == 0)
 							alert.min_price = lot.buyout_price;
-						}
 					}
 				}
 
@@ -373,8 +397,8 @@ int main() {
 			connection->send(out_message, [](const SimpleWeb::error_code& ec) {
 				if (ec) {
 					std::cout << "Server: Error sending message. " <<
-					  // See http://www.boost.org/doc/libs/1_55_0/doc/html/boost_asio/reference.html, Error
-				      // Codes for error code meanings
+					  // See http://www.boost.org/doc/libs/1_55_0/doc/html/boost_asio/reference.html
+				      // Error Codes for error code meanings
 					  "Error: " << ec << ", error message: " << ec.message() << std::endl;
 				}
 			});
@@ -395,7 +419,6 @@ int main() {
 
 	std::promise<unsigned short> server_port;
 	std::thread server_thread([&server, &server_port]() {
-		// Start server
 		server.start([&server_port](unsigned short port) { server_port.set_value(port); });
 	});
 

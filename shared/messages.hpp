@@ -3,6 +3,7 @@
 #include <cereal/cereal.hpp>
 #include <cereal/types/variant.hpp>
 #include <cereal/types/unordered_map.hpp>
+#include <cereal/types/unordered_set.hpp>
 #include <cereal/types/optional.hpp>
 #include <cereal/types/array.hpp>
 #include <cereal/types/vector.hpp>
@@ -155,17 +156,18 @@ struct RequestSwitchAlert {
 };
 
 struct RequestAddAlert {
-	size_t id;
+	size_t tab_id;
+	size_t alert_id;
 	Alert alert;
 
 	template<class Archive>
 	void save(Archive& ar) const {
-		ar(id, alert);
+		ar(tab_id, alert_id, alert);
 	}
 
 	template<class Archive>
 	void load(Archive& ar) {
-		ar(id, alert);
+		ar(tab_id, alert_id, alert);
 	}
 };
 
@@ -195,15 +197,16 @@ struct Request {
 struct ResponseItems {
 	std::unordered_map<std::string, std::string> items;
 	std::unordered_map<size_t, Alert> alerts;
+	std::unordered_map<size_t, std::unordered_set<size_t>> tabs;
 
 	template<class Archive>
 	void save(Archive& ar) const {
-		ar(items, alerts);
+		ar(items, alerts, tabs);
 	}
 
 	template<class Archive>
 	void load(Archive& ar) {
-		ar(items, alerts);
+		ar(items, alerts, tabs);
 	}
 };
 
@@ -230,15 +233,16 @@ struct Lot {
 struct ResponseAlertItems {
 	std::vector<Lot> lots;
 	std::unordered_map<size_t, Alert> alerts;
+	std::unordered_map<size_t, std::unordered_set<size_t>> tabs;
 
 	template<class Archive>
 	void save(Archive& ar) const {
-		ar(lots, alerts);
+		ar(lots, alerts, tabs);
 	}
 
 	template<class Archive>
 	void load(Archive& ar) {
-		ar(lots, alerts);
+		ar(lots, alerts, tabs);
 	}
 };
 

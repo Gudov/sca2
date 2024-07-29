@@ -8,12 +8,12 @@
 class View {
   public:
 	View(const bool& open, const ImVec2 pos, const ImVec2& size, const std::string& title);
-	virtual void Update() {};
+	virtual void update() {};
 	void updateSizePos();
 
-	bool isOpen = false;
+	bool is_open = false;
 	ImVec2 pos;
 	ImVec2 size;
 	std::string title;
-	std::chrono::system_clock::time_point lastClick;
+	std::chrono::system_clock::time_point last_click;
 };

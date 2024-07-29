@@ -10,6 +10,8 @@ namespace app {
 extern msg::Version server_version;
 extern std::unordered_map<std::string, std::string> items;
 extern std::unordered_map<size_t, msg::Alert> alerts;
+extern std::unordered_map<size_t, std::unordered_set<size_t>> tabs;
+
 extern bool auth;
 
 }  // namespace app

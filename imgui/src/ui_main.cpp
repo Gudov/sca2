@@ -1,4 +1,3 @@
-#include <emscripten.h>
 #include <imgui.h>
 
 #include <algorithm>
@@ -27,21 +26,21 @@ static std::vector<std::unique_ptr<View>> views;
 
 template<typename ViewClass>
 ViewClass* createView(const ImVec2& pos, const ImVec2& size, const std::string& title) {
-	static int viewCount = 0;
-	std::string idTitle = std::format("{}##{}", title, viewCount++);
-	std::unique_ptr<ViewClass> view = std::make_unique<ViewClass>(true, pos, size, idTitle);
+	static int view_count = 0;
+	std::string id_title = std::format("{}##{}", title, view_count++);
+	std::unique_ptr<ViewClass> view = std::make_unique<ViewClass>(true, pos, size, id_title);
 	views.emplace_back(std::move(view));
 	return (ViewClass*)views.back().get();
 }
 
-void CreateNewView(const ViewType& type) {
+void createNewView(const ViewType& type) {
 	std::random_device rd;
 	std::mt19937 gen(rd());
 
-	std::uniform_int_distribution posDistX(0, 150);
-	std::uniform_int_distribution posDistY(25, 150);
+	std::uniform_int_distribution pos_dist_x(0, 150);
+	std::uniform_int_distribution pos_dist_y(25, 150);
 
-	const auto& position = ImVec2(posDistX(gen), posDistY(gen));
+	const auto& position = ImVec2(pos_dist_x(gen), pos_dist_y(gen));
 
 	switch (type) {
 		case ViewType::Empty:      createView<::View>(position, ImVec2(350, 350), ""); break;
@@ -51,19 +50,18 @@ void CreateNewView(const ViewType& type) {
 	}
 }
 
-void UpdateViews() {
-	// Update all views
+void updateViews() {
 	std::vector<View*> windows;
 	windows.reserve(views.size());
 	for (const auto& window: views)
 		windows.emplace_back(std::move(window.get()));
 
-	std::ranges::sort(windows, [](const View* w1, const View* w2) -> bool { return w1->lastClick > w2->lastClick; });
+	std::ranges::sort(windows, [](const View* w1, const View* w2) -> bool { return w1->last_click > w2->last_click; });
 
 	for (const auto& window: windows)
-		window->Update();
+		window->update();
 
-	auto subrange = std::ranges::remove_if(views, [](const auto& view) { return !view->isOpen; });
+	auto subrange = std::ranges::remove_if(views, [](const auto& view) { return !view->is_open; });
 	views.erase(subrange.begin(), subrange.end());
 }
 
@@ -74,32 +72,32 @@ void draw_ui() {
 	ImGui::SetNextWindowSize(viewport->Size);
 	ImGui::SetNextWindowViewport(viewport->ID);
 
-	ImGuiWindowFlags windowFlags = ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_MenuBar
-	                               | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoDocking
-	                               | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove
-	                               | ImGuiWindowFlags_NoBringToFrontOnFocus;
+	ImGuiWindowFlags main_flags = ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_MenuBar
+	                              | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoDocking
+	                              | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove
+	                              | ImGuiWindowFlags_NoBringToFrontOnFocus;
 
-	if (bool open = true; !ImGui::Begin("Main ", &open, windowFlags)) {
+	if (bool open = true; !ImGui::Begin("Main ", &open, main_flags)) {
 		ImGui::End();
 		return;
 	}
 
-	bool prefsOpen = false;
+	bool prefs_open = false;
 
 	if (ImGui::BeginMenuBar()) {
 		if (ImGui::BeginMenu("Create")) {
 			using enum ViewType;
 			if (ImGui::MenuItem("Item list"))
-				CreateNewView(ItemList);
+				createNewView(ItemList);
 
 			if (ImGui::MenuItem("Alert list"))
-				CreateNewView(AlertTable);
+				createNewView(AlertTable);
 			ImGui::EndMenu();
 		}
 
 		if (ImGui::BeginMenu("Edit")) {
 			if (ImGui::MenuItem("Preferences"))
-				prefsOpen = true;
+				prefs_open = true;
 			ImGui::EndMenu();
 		}
 
@@ -112,7 +110,7 @@ void draw_ui() {
 		ImGui::EndMenuBar();
 	}
 
-	if (prefsOpen)
+	if (prefs_open)
 		ImGui::OpenPopup("Preferences");
 
 	if (ImGui::BeginPopupModal("Preferences")) {
@@ -133,10 +131,10 @@ void draw_ui() {
 		ImGui::EndPopup();
 	}
 
-	ImGuiID dockspaceID = ImGui::GetID("Main");
-	ImGuiDockNodeFlags dockspaceFlags = ImGuiDockNodeFlags_PassthruCentralNode;
-	ImGui::DockSpace(dockspaceID, ImVec2(0.0f, 0.0f), dockspaceFlags);
-	UpdateViews();
+	ImGuiID dockspace_id = ImGui::GetID("Main");
+	ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_PassthruCentralNode;
+	ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), dockspace_flags);
+	updateViews();
 	ImGui::End();
 
 	if (false) {

@@ -6,7 +6,7 @@ class HistoryView : public View {
   public:
 	HistoryView(const bool& open, const ImVec2& pos, const ImVec2& size, const std::string& title);
 
-	void Update() override;
+	void update() override;
 
 	std::string itemID;
 

@@ -39,7 +39,7 @@ overloaded(Ts...) -> overloaded<Ts...>;
 
 static const std::vector<std::string> ws_urls = {
   "wss://gudov.info:443/api"
-  //"ws://127.0.0.1:8001/api",
+  // "ws://127.0.0.1:8001/api",
   //"ws://10.0.0.12:8001/api"
 };
 
@@ -50,33 +50,35 @@ void processResponse(msg::Response&& response) {
 	  overloaded{
 		[](msg::ResponsePing& ping) { printf("recive response for ping %s\n", ping.str.c_str()); },
 		[](msg::Version& ver) { app::server_version = std::move(ver); },
-		[](msg::ResponseItems& items) {
-			printf("recieve items: %lu\n", items.items.size());
-			app::items = std::move(items.items);
-			app::alerts = std::move(items.alerts);
+		[](msg::ResponseItems& data) {
+			printf("recieve items: %lu\n", data.items.size());
+			app::items = std::move(data.items);
+			app::alerts = std::move(data.alerts);
+			app::tabs = data.tabs;
 		},
 		[](msg::Notify& notify) { send_notify(notify); },
-		[](msg::ResponseAlertItems& alert) {
-			app::alerts = alert.alerts;
+		[](msg::ResponseAlertItems& data) {
+			app::alerts = data.alerts;
+			app::tabs = data.tabs;
 			using namespace std::chrono_literals;
-			if (alert.lots.empty())
+			if (data.lots.empty())
 				return;
-			auto& lot = alert.lots.front();
+			auto& lot = data.lots.front();
 
-			for (auto& l: alert.lots)
+			for (auto& l: data.lots)
 				if (l.buyout_price < lot.buyout_price)
 					lot = l;
 
-			static std::string last_allert = "";
+			static std::string last_alert = "";
 			static std::chrono::system_clock::time_point last_time;
 			std::string alert_name = lot.item_id;
 			alert_name += std::to_string(lot.buyout_price);
 			std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
-			if (last_allert == alert_name && (now - last_time) < 10s)
+			if (last_alert == alert_name && (now - last_time) < 10s)
 				return;
-			last_allert = alert_name;
+			last_alert = alert_name;
 			last_time = now;
-			std::string price = PriceFormat(lot.buyout_price);
+			std::string price = formatPrice(lot.buyout_price);
 			std::string label = app::items[lot.item_id];
 			if (lot.qlt) {
 				label += " ";

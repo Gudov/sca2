@@ -5,12 +5,12 @@ HistoryView::HistoryView(const bool& open, const ImVec2& pos, const ImVec2& size
 	lastDay = std::chrono::system_clock::now();
 }
 
-void HistoryView::Update() {
-	if (ImGui::Begin(title.c_str(), &isOpen)) {
+void HistoryView::update() {
+	if (ImGui::Begin(title.c_str(), &is_open)) {
 		View::updateSizePos();
 
 		if (ImGui::IsWindowFocused())
-			lastClick = std::chrono::system_clock::now();
+			last_click = std::chrono::system_clock::now();
 	}
 	ImGui::End();
 }
