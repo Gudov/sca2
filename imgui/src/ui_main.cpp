@@ -13,7 +13,6 @@
 #include "views/alert_table_view.hpp"
 #include "views/history_view.hpp"
 #include "views/item_list_view.hpp"
-#include "notify.hpp"
 
 enum class ViewType {
 	Empty,
@@ -82,7 +81,7 @@ void draw_ui() {
 		return;
 	}
 
-	bool prefs_open = false;
+	// bool prefs_open = false;
 
 	if (ImGui::BeginMenuBar()) {
 		if (ImGui::BeginMenu("Create")) {
@@ -95,41 +94,38 @@ void draw_ui() {
 			ImGui::EndMenu();
 		}
 
-		if (ImGui::BeginMenu("Edit")) {
-			if (ImGui::MenuItem("Preferences"))
-				prefs_open = true;
-			ImGui::EndMenu();
-		}
+		// if (ImGui::BeginMenu("Edit")) {
+		// 	if (ImGui::MenuItem("Preferences"))
+		// 		prefs_open = true;
+		// 	ImGui::EndMenu();
+		// }
 
-		if (ImGui::Button("Notify"))
-			send_notify("test notify", "test body", "test clip");
-
-		ImGui::Text("| client: %d %s |", BUILD_NUMBER, BUILD_VERSION);
-		ImGui::Text("server: %d %s", app::server_version.build_number, app::server_version.version.c_str());
+		ImGui::Text("| Client: %d %s |", BUILD_NUMBER, BUILD_VERSION);
+		ImGui::Text("Server: %d %s", app::server_version.build_number, app::server_version.version.c_str());
 
 		ImGui::EndMenuBar();
 	}
 
-	if (prefs_open)
-		ImGui::OpenPopup("Preferences");
+	// if (prefs_open)
+	// 	ImGui::OpenPopup("Preferences");
 
-	if (ImGui::BeginPopupModal("Preferences")) {
-		/*static int pollRateSec = 2;//std::chrono::duration_cast<std::chrono::seconds>(app->settings.pollRate).count();
-		        ImGui::Text("Auction polling rate (seconds)");
-		        ImGui::InputInt("##pollrate", &pollRateSec);
+	// if (ImGui::BeginPopupModal("Preferences")) {
+	/*static int pollRateSec = 2;//std::chrono::duration_cast<std::chrono::seconds>(app->settings.pollRate).count();
+	        ImGui::Text("Auction polling rate (seconds)");
+	        ImGui::InputInt("##pollrate", &pollRateSec);
 
-		        if (ImGui::Button("OK")) {
-		                //app->settings.pollRate = std::chrono::seconds(pollRateSec);
-		                ImGui::CloseCurrentPopup();
-		        }
+	        if (ImGui::Button("OK")) {
+	                //app->settings.pollRate = std::chrono::seconds(pollRateSec);
+	                ImGui::CloseCurrentPopup();
+	        }
 
-		        ImGui::SameLine();
+	        ImGui::SameLine();
 
-		        if (ImGui::Button("Cancel")) {
-		                ImGui::CloseCurrentPopup();
-		        }*/
-		ImGui::EndPopup();
-	}
+	        if (ImGui::Button("Cancel")) {
+	                ImGui::CloseCurrentPopup();
+	        }*/
+	// ImGui::EndPopup();
+	// }
 
 	ImGuiID dockspace_id = ImGui::GetID("Main");
 	ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_PassthruCentralNode;

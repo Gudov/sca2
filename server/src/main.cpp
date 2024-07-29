@@ -52,8 +52,10 @@ std::unordered_set<std::string> auth;
 constexpr int port = 8001;
 
 namespace persistent {
+
 std::unordered_map<size_t, msg::Alert> alerts;
 std::unordered_map<size_t, std::unordered_set<size_t>> tabs;
+
 }  // namespace persistent
 
 [[nodiscard]] std::filesystem::path getExecutablePath() noexcept {
@@ -133,7 +135,7 @@ std::unordered_map<std::string, std::string> getItems() {
 	if (items.empty() || now - last_update >= period) {
 		items = parseDatabase(getItemDB() / "ru" / "items");
 		last_update = now;
-		std::printf("loaded: %lu items\n", items.size());
+		std::printf("Loaded: %lu items\n", items.size());
 	}
 
 	return items;
@@ -169,9 +171,9 @@ void processRequest(msg::Request&& request, std::shared_ptr<WsServer::Connection
 			if (persistent::alerts.contains(alert.id))
 				persistent::alerts.erase(alert.id);
 
-			for (auto& [tab_id, alert_set]: persistent::tabs)
-				if (alert_set.contains(alert.id))
-					alert_set.erase(alert.id);
+			for (auto& [tab_id, tab_alert_ids]: persistent::tabs)
+				if (tab_alert_ids.contains(alert.id))
+					tab_alert_ids.erase(alert.id);
 
 			sendResponse(
 			  {msg::ResponseItems{.items = getItems(), .alerts = persistent::alerts, .tabs = persistent::tabs}},
@@ -209,7 +211,7 @@ void processRequest(msg::Request&& request, std::shared_ptr<WsServer::Connection
 		[&](msg::RequestPassword& pass) {
 			if (pass.password == "1131") {
 				auth.insert(connection->remote_endpoint().address().to_string());
-				printf("auth: %s\n", connection->remote_endpoint().address().to_string().c_str());
+				printf("Auth: %s\n", connection->remote_endpoint().address().to_string().c_str());
 				sendResponse(msg::Response{msg::ResponsePassword{true}}, connection);
 			}
 		}

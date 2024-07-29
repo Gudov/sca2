@@ -33,7 +33,7 @@ EM_BOOL onclose(int eventType, const EmscriptenWebSocketCloseEvent* websocketEve
 EM_BOOL onmessage(int eventType, const EmscriptenWebSocketMessageEvent* event, void* userData) {
 	std::string message((const char*)event->data, (size_t)event->numBytes);
 	if (print_responses)
-		printf("message: %s\n", message.c_str());
+		printf("Message: %s\n", message.c_str());
 	{
 		std::lock_guard guard(ws_queue_mutex);
 		ws_queue.push(message);
@@ -49,7 +49,7 @@ void sendRequest(msg::Request&& request) {
 	}
 	std::string str = ss.str();
 	if (print_requests)
-		printf("request: %s\n", str.c_str());
+		printf("Request: %s\n", str.c_str());
 	emscripten_websocket_send_binary(ws, (void*)str.c_str(), str.size());
 }
 
