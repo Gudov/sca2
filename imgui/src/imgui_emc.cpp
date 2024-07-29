@@ -51,7 +51,7 @@ int init_gl() {
 	// Open a window and create its OpenGL context
 	int canvasWidth = g_width;
 	int canvasHeight = g_height;
-	std::string title = "sca";
+	std::string title = "SCA II";
 	g_window = glfwCreateWindow(canvasWidth, canvasHeight, title.c_str(), NULL, NULL);
 	if (g_window == NULL) {
 		fprintf(stderr, "Failed to open GLFW window.\n");
@@ -80,9 +80,9 @@ void applyImStyle() {
 	style.ScrollbarSize = 16;
 	style.GrabMinSize = 8;
 	style.WindowBorderSize = style.ChildBorderSize = style.PopupBorderSize = style.TabBorderSize = 0;
-	style.FrameBorderSize = 1;
+	style.FrameBorderSize = 0;
 	style.WindowRounding = style.ChildRounding = style.PopupRounding = style.ScrollbarRounding = style.GrabRounding
-	  = style.TabRounding = 4;
+	  = style.TabRounding = 0;
 
 	ImVec4* colors = ImGui::GetStyle().Colors;
 	colors[ImGuiCol_Text] = ImVec4(0.90f, 0.90f, 0.90f, 1.00f);
@@ -199,13 +199,11 @@ int init_imgui() {
 
 	io.Fonts->Clear();
 
-	ImFontConfig fontConfig;
-	fontConfig.FontDataOwnedByAtlas = false;
-
-	ImFontConfig iconConfig;
-	iconConfig.OversampleH = 1;
-	iconConfig.OversampleV = 1;
-	iconConfig.PixelSnapH = 1;
+	ImFontConfig font_config;
+	font_config.FontDataOwnedByAtlas = false;
+	font_config.OversampleH = 1;
+	font_config.OversampleV = 1;
+	font_config.PixelSnapH = 1;
 
 	const std::string font = "SauceCodeProNerdFont-Regular.ttf";
 	static const ImWchar ranges[] = {
@@ -218,8 +216,7 @@ int init_imgui() {
 	  0,
 	};
 
-	io.Fonts->AddFontFromFileTTF(font.c_str(), 15.0f, &iconConfig, ranges);
-
+	io.Fonts->AddFontFromFileTTF(font.c_str(), 15.0f, &font_config, ranges);
 	io.Fonts->Build();
 	io.Fonts->AddFontDefault();
 
