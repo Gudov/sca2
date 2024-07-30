@@ -14,8 +14,8 @@ class HistoryView : public View {
 	std::vector<size_t> x;
 	std::vector<size_t> y;
 
-	std::chrono::system_clock::time_point lastDay;
+	std::chrono::system_clock::time_point last_day;
 
-	int fetchAmount = 1000;
-	bool showAlert = false;
+	int fetch_amount = 1000;
+	bool show_alert = false;
 };

@@ -38,8 +38,8 @@ template<class... Ts>
 overloaded(Ts...) -> overloaded<Ts...>;
 
 static const std::vector<std::string> ws_urls = {
-  "wss://gudov.info:443/api"
-  //"ws://127.0.0.1:8001/api",
+  // "wss://gudov.info:443/api"
+  "ws://127.0.0.1:8001/api",
   //"ws://10.0.0.12:8001/api"
 };
 
@@ -56,6 +56,7 @@ void processResponse(msg::Response&& response) {
 			app::alerts = std::move(data.alerts);
 			app::tabs = data.tabs;
 		},
+		[](msg::ResponseHistory& resp) { app::history = resp.history; },
 		[](msg::Notify& notify) { send_notify(notify); },
 		[](msg::ResponseAlertItems& data) {
 			using namespace std::chrono_literals;

@@ -1,23 +1,44 @@
 #pragma once
 
 #include <cereal/cereal.hpp>
-#include <cereal/types/variant.hpp>
+
+#include <cereal/types/chrono.hpp>
+#include <cereal/types/string.hpp>
+
 #include <cereal/types/unordered_map.hpp>
 #include <cereal/types/unordered_set.hpp>
 #include <cereal/types/optional.hpp>
-#include <cereal/types/array.hpp>
+#include <cereal/types/variant.hpp>
 #include <cereal/types/vector.hpp>
 #include <cereal/archives/binary.hpp>
 
 #include <cstddef>
+#include <chrono>
 #include <string>
 
 #include <unordered_map>
+#include <unordered_set>
 #include <optional>
 #include <variant>
 #include <vector>
 
 namespace msg {
+
+struct History {
+	size_t amount;
+	size_t price;
+	std::chrono::system_clock::time_point time;
+
+	template<class Archive>
+	void save(Archive& ar) const {
+		ar(amount, price, time);
+	}
+
+	template<class Archive>
+	void load(Archive& ar) {
+		ar(amount, price, time);
+	}
+};
 
 struct Alert {
 	std::string item;
@@ -114,15 +135,16 @@ struct RequestItems {
 
 struct RequestHistory {
 	std::string name;
+	std::size_t amount;
 
 	template<class Archive>
 	void save(Archive& ar) const {
-		ar(name);
+		ar(name, amount);
 	}
 
 	template<class Archive>
 	void load(Archive& ar) {
-		ar(name);
+		ar(name, amount);
 	}
 };
 
@@ -210,6 +232,20 @@ struct ResponseItems {
 	}
 };
 
+struct ResponseHistory {
+	std::unordered_map<std::string, std::vector<msg::History>> history;
+
+	template<class Archive>
+	void save(Archive& ar) const {
+		ar(history);
+	}
+
+	template<class Archive>
+	void load(Archive& ar) {
+		ar(history);
+	}
+};
+
 struct Lot {
 	std::optional<std::vector<std::string>> bonus_properties;
 	std::optional<std::size_t> ptn;
@@ -275,7 +311,8 @@ struct Notify {
 };
 
 struct Response {
-	std::variant<ResponsePing, Version, ResponseItems, Notify, ResponseAlertItems, ResponsePassword> response;
+	std::variant<ResponsePing, Version, ResponseItems, ResponseHistory, Notify, ResponseAlertItems, ResponsePassword>
+	  response;
 
 	template<class Archive>
 	void save(Archive& ar) const {

@@ -55,6 +55,7 @@ namespace persistent {
 
 std::unordered_map<size_t, msg::Alert> alerts;
 std::unordered_map<size_t, std::unordered_set<size_t>> tabs;
+std::unordered_map<std::string, std::vector<msg::History>> history;
 
 }  // namespace persistent
 
@@ -102,10 +103,23 @@ void updateDB(const std::filesystem::path db_path) {
 	}
 }
 
-[[nodiscard]] std::filesystem::path getItemDB() {
+// TODO: Update somewhere else, not when user adds alerts
+std::unordered_map<std::string, std::string> getItems() {
+	static const std::chrono::hours period(1);
+	static std::chrono::system_clock::time_point last_update;
+	static std::unordered_map<std::string, std::string> items;
+	const auto now = std::chrono::system_clock::now();
+
 	const std::filesystem::path db_path = getExecutablePath() / "db";
 	updateDB(db_path);
-	return db_path;
+
+	if (items.empty() || now - last_update >= period) {
+		items = parseDatabase(db_path / "ru" / "items");
+		last_update = now;
+		std::printf("Loaded: %lu items\n", items.size());
+	}
+
+	return items;
 }
 
 void sendResponse(msg::Response&& response, std::shared_ptr<WsServer::Connection>& connection) {
@@ -123,22 +137,6 @@ void sendResponse(msg::Response&& response, std::shared_ptr<WsServer::Connection
 			  "Error: " << ec << ", error message: " << ec.message() << std::endl;
 		}
 	});
-}
-
-// TODO: Update somewhere else, not when user adds alerts
-std::unordered_map<std::string, std::string> getItems() {
-	static const std::chrono::hours period(1);
-	static std::chrono::system_clock::time_point last_update;
-	static std::unordered_map<std::string, std::string> items;
-	const auto now = std::chrono::system_clock::now();
-
-	if (items.empty() || now - last_update >= period) {
-		items = parseDatabase(getItemDB() / "ru" / "items");
-		last_update = now;
-		std::printf("Loaded: %lu items\n", items.size());
-	}
-
-	return items;
 }
 
 void processRequest(msg::Request&& request, std::shared_ptr<WsServer::Connection>& connection) {
@@ -165,7 +163,8 @@ void processRequest(msg::Request&& request, std::shared_ptr<WsServer::Connection
 			);
 		},
 		[&](msg::RequestHistory& r) {
-
+			persistent::history[r.name];
+			sendResponse({msg::ResponseHistory{.history = persistent::history}}, connection);
 		},
 		[&](msg::RequestRemoveAlert& alert) {
 			if (persistent::alerts.contains(alert.id))
@@ -220,7 +219,7 @@ void processRequest(msg::Request&& request, std::shared_ptr<WsServer::Connection
 	);
 }
 
-void parseLots(nlohmann::json& json, std::vector<nlohmann::json>& result) {
+void parseLots(nlohmann::json& json, nlohmann::json& result) {
 	auto lots = json["lots"];
 	size_t count = 0;
 	for (auto& [_, lot]: lots.items()) {
@@ -230,10 +229,10 @@ void parseLots(nlohmann::json& json, std::vector<nlohmann::json>& result) {
 	printf("Received %lu\n", count);
 }
 
-std::vector<nlohmann::json> loadAll(SCAPI& scapi, const std::string& id) {
+nlohmann::json loadAllLots(SCAPI& scapi, const std::string& id) {
 	printf("Requested all: %s\n", id.c_str());
 
-	std::vector<nlohmann::json> result;
+	nlohmann::json result;
 	size_t limit = 200;
 	size_t offset = 0;
 
@@ -262,23 +261,68 @@ std::vector<nlohmann::json> loadAll(SCAPI& scapi, const std::string& id) {
 	return result;
 }
 
-bool checkAlert(msg::Lot& lot, msg::Alert& alert) {
-	if (alert.qlt && (!lot.qlt || *lot.qlt < *alert.qlt))
-		return false;
-
-	if (alert.ptn && (!lot.ptn || *lot.ptn < *alert.ptn))
-		return false;
-
-	return true;
+void parseHistory(nlohmann::json& json, std::vector<nlohmann::json>& result) {
+	auto lots = json["prices"];
+	size_t count = 0;
+	for (auto& [_, lot]: lots.items()) {
+		result.push_back(lot);
+		count++;
+	}
+	printf("Received %lu\n", count);
 }
 
-std::optional<msg::Lot> parseLot(nlohmann::json& j) {
+nlohmann::json loadHistory(SCAPI& scapi, const std::string& id, const size_t amount) {
+	printf("Requested history: %s\n", id.c_str());
+
+	std::vector<nlohmann::json> result;
+	size_t limit = 200;
+	size_t offset = 0;
+
+	auto fetchAndParse = [&](size_t currentOffset) {
+		nlohmann::json history = scapi.getSoldLots({
+		  .region_id = "RU",
+		  .item_id = id,
+		  .limit = limit,
+		  .offset = currentOffset,
+		  .additional = false,
+		});
+		parseHistory(history, result);
+		return history["total"].get<int>();
+	};
+
+	int totalFetched = 0;
+	int total = fetchAndParse(offset);
+
+	totalFetched += result.size();
+
+	offset += limit;
+	total -= limit;
+
+	while (total > 0 && totalFetched < amount) {
+		fetchAndParse(offset);
+		totalFetched += result.size();
+		offset += limit;
+		total -= limit;
+
+		if (totalFetched >= amount)
+			break;
+	}
+
+	if (result.size() > amount)
+		result.resize(amount);
+
+	printf("Loaded history for: %s %lu %lu\n", id.c_str(), result.size(), amount);
+
+	return result;
+}
+
+std::optional<msg::Lot> parseLot(const nlohmann::json& j) {
 	msg::Lot lot;
 	if (j.contains("additional")) {
 		auto additional = j["additional"];
 		if (additional.contains("bonus_properties")) {
 			std::vector<std::string> bonus_properties;
-			for (auto& [_, prop]: additional["bonus_properties"].items())
+			for (const auto& [_, prop]: additional["bonus_properties"].items())
 				bonus_properties.push_back(prop);
 			lot.bonus_properties = bonus_properties;
 		}
@@ -306,6 +350,16 @@ std::optional<msg::Lot> parseLot(nlohmann::json& j) {
 void pollLots(SCAPI& scapi, WsServer& server, const Config& config) {
 	using namespace std::chrono_literals;
 
+	const auto& checkAlert = [](msg::Lot& lot, const msg::Alert& alert) {
+		if (alert.qlt && (!lot.qlt || *lot.qlt < *alert.qlt))
+			return false;
+
+		if (alert.ptn && (!lot.ptn || *lot.ptn < *alert.ptn))
+			return false;
+
+		return true;
+	};
+
 	while (true) {
 		std::unordered_map<std::string, std::vector<size_t>> c_alerts;
 
@@ -321,10 +375,10 @@ void pollLots(SCAPI& scapi, WsServer& server, const Config& config) {
 			continue;
 		}
 
-		msg::ResponseAlertItems alertItems;
+		msg::ResponseAlertItems alert_items;
 
-		for (auto& [id, alerts_ids]: c_alerts) {
-			auto active = loadAll(scapi, id);
+		for (const auto& [id, alerts_ids]: c_alerts) {
+			auto active = loadAllLots(scapi, id);
 
 			for (auto& lot_json: active) {
 				auto lot_o = parseLot(lot_json);
@@ -338,8 +392,8 @@ void pollLots(SCAPI& scapi, WsServer& server, const Config& config) {
 				if (lot.buyout_price == 0)
 					continue;
 
-				for (auto& alert_id: alerts_ids) {
-					auto& alert = persistent::alerts[alert_id];
+				for (const auto& alert_id: alerts_ids) {
+					auto& alert = persistent::alerts.at(alert_id);
 					if (checkAlert(lot, alert)) {
 						if (lot.buyout_price <= alert.price + 1)
 							lot.alert_ids.push_back(alert_id);
@@ -350,15 +404,16 @@ void pollLots(SCAPI& scapi, WsServer& server, const Config& config) {
 				}
 
 				if (!lot.alert_ids.empty())
-					alertItems.lots.push_back(lot);
+					alert_items.lots.push_back(lot);
 			}
 		}
 
-		alertItems.alerts = persistent::alerts;
+		alert_items.alerts = persistent::alerts;
+		alert_items.tabs = persistent::tabs;
 		auto connections = server.get_connections();
 		for (auto conn: connections)
 			if (auth.contains(conn->remote_endpoint().address().to_string()))
-				sendResponse(msg::Response{alertItems}, conn);
+				sendResponse(msg::Response{alert_items}, conn);
 
 		std::this_thread::sleep_for(config.sc_api_poll_rate);
 

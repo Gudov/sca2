@@ -2,7 +2,7 @@
 
 HistoryView::HistoryView(const bool& open, const ImVec2& pos, const ImVec2& size, const std::string& title) :
 	View(open, pos, size, title) {
-	lastDay = std::chrono::system_clock::now();
+	last_day = std::chrono::system_clock::now();
 }
 
 void HistoryView::update() {
