@@ -38,8 +38,8 @@ template<class... Ts>
 overloaded(Ts...) -> overloaded<Ts...>;
 
 static const std::vector<std::string> ws_urls = {
-  // "wss://gudov.info:443/api"
-  "ws://127.0.0.1:8001/api",
+  "wss://gudov.info:443/api"
+  //"ws://127.0.0.1:8001/api",
   //"ws://10.0.0.12:8001/api"
 };
 
