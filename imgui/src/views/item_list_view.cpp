@@ -35,6 +35,8 @@ void ItemListView::update() {
 						if (!app::history.contains(id)) {
 							historyView->is_fetching = true;
 							sendRequest({msg::RequestHistory{.id = id, .amount = historyView->fetch_amount}});
+						} else {
+							historyView->is_fetching = true;
 						}
 					}
 				}
