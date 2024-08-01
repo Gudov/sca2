@@ -134,17 +134,17 @@ struct RequestItems {
 };
 
 struct RequestHistory {
-	std::string name;
-	std::size_t amount;
+	std::string id;
+	int amount;
 
 	template<class Archive>
 	void save(Archive& ar) const {
-		ar(name, amount);
+		ar(id, amount);
 	}
 
 	template<class Archive>
 	void load(Archive& ar) {
-		ar(name, amount);
+		ar(id, amount);
 	}
 };
 

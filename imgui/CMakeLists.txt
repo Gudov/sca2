@@ -35,9 +35,10 @@ target_include_directories(
   imgui
   PRIVATE
     src/
-    imgui
-    imgui/backends
-    ../shared
+    imgui/
+    imgui/misc/cpp/
+    imgui/backends/
+    ../shared/
     $ENV{EMSDK}/upstream/emscripten/cache/sysroot/include/fakesdl
     $ENV{EMSDK}/upstream/emscripten/cache/sysroot/include/compat
     $ENV{EMSDK}/upstream/emscripten/cache/sysroot/include/c++/v1

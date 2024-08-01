@@ -54,9 +54,9 @@ void processResponse(msg::Response&& response) {
 			printf("Received items: %lu\n", data.items.size());
 			app::items = std::move(data.items);
 			app::alerts = std::move(data.alerts);
-			app::tabs = data.tabs;
+			app::tabs = std::move(data.tabs);
 		},
-		[](msg::ResponseHistory& resp) { app::history = resp.history; },
+		[](msg::ResponseHistory& r) { app::history = r.history; },
 		[](msg::Notify& notify) { send_notify(notify); },
 		[](msg::ResponseAlertItems& data) {
 			using namespace std::chrono_literals;

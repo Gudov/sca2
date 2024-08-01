@@ -14,6 +14,7 @@ inline bool contains(const std::string& s1, const std::string& s2) {
 	return tolower(s1).find(tolower(s2)) != std::string::npos;
 }
 
+int formatDate(double value, char* buff, int size, void*);
 int formatPrice(double value, char* buff, int size, void*);
 std::string formatPrice(double value);
 int percToQlt(float perc);

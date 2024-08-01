@@ -58,7 +58,7 @@ std::vector<size_t> getSortedAlertIds(
 template<typename T>
 size_t getNewId(const std::unordered_map<size_t, T>& map) {
 	size_t i = 0;
-	while (app::tabs.contains(i))
+	while (map.contains(i))
 		i++;
 	return i;
 }

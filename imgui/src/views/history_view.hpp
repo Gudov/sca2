@@ -8,14 +8,13 @@ class HistoryView : public View {
 
 	void update() override;
 
-	std::string itemID;
+	std::string item_id;
+	bool is_fetching = false;
+	int fetch_amount = 1000;
 
   private:
-	std::vector<size_t> x;
-	std::vector<size_t> y;
-
-	std::chrono::system_clock::time_point last_day;
-
-	int fetch_amount = 1000;
-	bool show_alert = false;
+	struct Plot {
+		std::vector<double> x;
+		std::vector<double> y;
+	} plot;
 };

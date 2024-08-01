@@ -183,6 +183,7 @@ int init_imgui() {
 	// Setup Dear ImGui binding
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
+	ImPlot::CreateContext();
 	ImGui_ImplGlfw_InitForOpenGL(g_window, true);
 	ImGui_ImplOpenGL3_Init();
 

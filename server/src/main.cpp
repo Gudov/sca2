@@ -31,10 +31,12 @@ class Config {
 	std::string sc_api_id;
 
 	void fromJson(const std::filesystem::path& path) {
-		auto config = nlohmann::json::parse(std::ifstream(path));
-		this->sc_api_poll_rate = std::chrono::seconds(config["sc_api_poll_rate"]);
-		this->sc_api_id = config["sc_api_id"];
-		this->sc_api_secret = config["sc_api_secret"];
+		try {
+			auto config = nlohmann::json::parse(std::ifstream(path));
+			this->sc_api_poll_rate = std::chrono::seconds(config["sc_api_poll_rate"]);
+			this->sc_api_id = config["sc_api_id"];
+			this->sc_api_secret = config["sc_api_secret"];
+		} catch (const std::exception& e) { std::cerr << "Failed to load config from JSON: " << e.what() << "\n"; }
 	}
 };
 
@@ -47,12 +49,11 @@ overloaded(Ts...) -> overloaded<Ts...>;
 
 using WsServer = SimpleWeb::SocketServer<SimpleWeb::WS>;
 
-std::unordered_set<std::string> auth;
-
 constexpr int port = 8001;
 
 namespace persistent {
 
+std::unordered_set<std::string> auth;
 std::unordered_map<size_t, msg::Alert> alerts;
 std::unordered_map<size_t, std::unordered_set<size_t>> tabs;
 std::unordered_map<std::string, std::vector<msg::History>> history;
@@ -75,14 +76,14 @@ std::unordered_map<std::string, std::vector<msg::History>> history;
 			if (entry.path().string().find("_variants") != std::string::npos)
 				continue;
 
-			auto subMap = parseDatabase(entry.path());
+			const auto subMap = parseDatabase(entry.path());
 			map.insert(subMap.begin(), subMap.end());
 		}
 	} else if (path.extension() == ".json") {
-		auto j = nlohmann::json::parse(std::ifstream(path));
+		const auto j = nlohmann::json::parse(std::ifstream(path));
 
-		std::string id = path.stem().string();
-		std::string name = j["name"]["lines"]["ru"];
+		const std::string id = path.stem().string();
+		const std::string name = j["name"]["lines"]["ru"];
 		map[id] = name;
 	}
 
@@ -91,13 +92,13 @@ std::unordered_map<std::string, std::vector<msg::History>> history;
 
 void updateDB(const std::filesystem::path db_path) {
 	if (!std::filesystem::exists(db_path)) {
-		std::string command = "git clone https://github.com/EXBO-Studio/stalcraft-database/ " + db_path.string();
-		int result = std::system(command.c_str());
+		const std::string command = "git clone https://github.com/EXBO-Studio/stalcraft-database/ " + db_path.string();
+		const int result = std::system(command.c_str());
 		if (result != 0)
 			throw std::runtime_error("Failed to clone the repository. Error code: " + std::to_string(result));
 	} else {
-		std::string command = "cd " + db_path.string() + " && git pull";
-		int result = std::system(command.c_str());
+		const std::string command = "cd " + db_path.string() + " && git pull";
+		const int result = std::system(command.c_str());
 		if (result != 0)
 			throw std::runtime_error("Failed to update the repository. Error code: " + std::to_string(result));
 	}
@@ -110,10 +111,9 @@ std::unordered_map<std::string, std::string> getItems() {
 	static std::unordered_map<std::string, std::string> items;
 	const auto now = std::chrono::system_clock::now();
 
-	const std::filesystem::path db_path = getExecutablePath() / "db";
-	updateDB(db_path);
-
 	if (items.empty() || now - last_update >= period) {
+		const std::filesystem::path db_path = getExecutablePath() / "db";
+		updateDB(db_path);
 		items = parseDatabase(db_path / "ru" / "items");
 		last_update = now;
 		std::printf("Loaded: %lu items\n", items.size());
@@ -139,8 +139,98 @@ void sendResponse(msg::Response&& response, std::shared_ptr<WsServer::Connection
 	});
 }
 
-void processRequest(msg::Request&& request, std::shared_ptr<WsServer::Connection>& connection) {
-	bool ip_match = auth.contains(connection->remote_endpoint().address().to_string());
+std::chrono::system_clock::time_point parseISO8601(const std::string& iso8601_str) {
+	std::chrono::system_clock::time_point time_point;
+	std::istringstream stream(iso8601_str);
+
+	if (!(stream >> std::chrono::parse("%Y-%m-%dT%H:%M:%SZ", time_point)))
+		throw std::runtime_error("Failed to parse ISO 8601 date-time string");
+
+	return time_point;
+}
+
+[[nodiscard]] nlohmann::json loadHistory(SCAPI& scapi, const std::string& id, const size_t amount) {
+	printf("Requested history: %s\n", id.c_str());
+
+	std::vector<nlohmann::json> result;
+	size_t limit = 200;
+	size_t offset = 0;
+
+	auto parseHistory = [](nlohmann::json& json, std::vector<nlohmann::json>& result) {
+		const auto lots = json["prices"];
+		size_t count = 0;
+		for (auto& [_, lot]: lots.items()) {
+			result.push_back(lot);
+			count++;
+		}
+		printf("Received %lu\n", count);
+	};
+
+	auto fetchAndParse = [&](size_t current_offset) {
+		nlohmann::json history = scapi.getSoldLots({
+		  .region_id = "RU",
+		  .item_id = id,
+		  .limit = limit,
+		  .offset = current_offset,
+		  .additional = false,
+		});
+		parseHistory(history, result);
+		return history["total"].get<int>();
+	};
+
+	int total_fetched = 0;
+	int total = fetchAndParse(offset);
+
+	total_fetched += result.size();
+
+	offset += limit;
+	total -= limit;
+
+	while (total > 0 && total_fetched < amount) {
+		fetchAndParse(offset);
+		total_fetched += result.size();
+		offset += limit;
+		total -= limit;
+
+		if (total_fetched >= amount)
+			break;
+	}
+
+	if (result.size() > amount)
+		result.resize(amount);
+
+	printf("Loaded history for: %s %lu %lu\n", id.c_str(), result.size(), amount);
+
+	return result;
+}
+
+[[nodiscard]] std::optional<msg::History> parseHistory(const nlohmann::json& j) {
+	if (j.contains("amount") && j.contains("price") && j.contains("time")) {
+		msg::History data;
+		data.price = j.at("price");
+		data.amount = j.at("amount");
+		data.time = parseISO8601(j.at("time"));
+		return data;
+	}
+	return std::nullopt;
+}
+
+std::unordered_map<std::string, std::vector<msg::History>>
+  addHistory(SCAPI& scapi, const size_t amount, const std::string& id) {
+	const auto history_json = loadHistory(scapi, id, amount);
+	std::vector<msg::History> history;
+
+	for (const auto& entry: history_json)
+		if (auto parsed_entry = parseHistory(entry); parsed_entry)
+			history.push_back(*parsed_entry);
+		else
+			printf("Invalid history %s\n", history_json.dump(4).c_str());
+	persistent::history[id] = history;
+	return persistent::history;
+}
+
+void processRequest(msg::Request&& request, std::shared_ptr<WsServer::Connection>& connection, SCAPI& scapi) {
+	bool ip_match = persistent::auth.contains(connection->remote_endpoint().address().to_string());
 	if (!ip_match && !std::holds_alternative<msg::RequestPassword>(request.request))
 		return;
 	std::visit(
@@ -163,8 +253,7 @@ void processRequest(msg::Request&& request, std::shared_ptr<WsServer::Connection
 			);
 		},
 		[&](msg::RequestHistory& r) {
-			persistent::history[r.name];
-			sendResponse({msg::ResponseHistory{.history = persistent::history}}, connection);
+			sendResponse({msg::ResponseHistory{.history = addHistory(scapi, r.amount, r.id)}}, connection);
 		},
 		[&](msg::RequestRemoveAlert& alert) {
 			if (persistent::alerts.contains(alert.id))
@@ -201,7 +290,6 @@ void processRequest(msg::Request&& request, std::shared_ptr<WsServer::Connection
 			} else {
 				persistent::tabs[data.tab_id];
 			}
-
 			sendResponse(
 			  {msg::ResponseItems{.items = getItems(), .alerts = persistent::alerts, .tabs = persistent::tabs}},
 			  connection
@@ -209,7 +297,7 @@ void processRequest(msg::Request&& request, std::shared_ptr<WsServer::Connection
 		},
 		[&](msg::RequestPassword& pass) {
 			if (pass.password == "1131") {
-				auth.insert(connection->remote_endpoint().address().to_string());
+				persistent::auth.insert(connection->remote_endpoint().address().to_string());
 				printf("Auth: %s\n", connection->remote_endpoint().address().to_string().c_str());
 				sendResponse(msg::Response{msg::ResponsePassword{true}}, connection);
 			}
@@ -219,24 +307,24 @@ void processRequest(msg::Request&& request, std::shared_ptr<WsServer::Connection
 	);
 }
 
-void parseLots(nlohmann::json& json, nlohmann::json& result) {
-	auto lots = json["lots"];
-	size_t count = 0;
-	for (auto& [_, lot]: lots.items()) {
-		result.push_back(lot);
-		count++;
-	}
-	printf("Received %lu\n", count);
-}
-
-nlohmann::json loadAllLots(SCAPI& scapi, const std::string& id) {
+[[nodiscard]] nlohmann::json loadAllLots(SCAPI& scapi, const std::string& id) {
 	printf("Requested all: %s\n", id.c_str());
 
 	nlohmann::json result;
 	size_t limit = 200;
 	size_t offset = 0;
 
-	auto fetchAndParse = [&](size_t currentOffset) {
+	const auto parseLots = [](nlohmann::json& json, nlohmann::json& result) {
+		auto lots = json["lots"];
+		size_t count = 0;
+		for (auto& [_, lot]: lots.items()) {
+			result.push_back(lot);
+			count++;
+		}
+		printf("Received %lu\n", count);
+	};
+
+	const auto fetchAndParse = [&](size_t currentOffset) {
 		auto active = scapi.getActiveLots(
 		  {.region_id = "RU", .item_id = id, .limit = limit, .offset = currentOffset, .additional = true},
 		  Sort::Criterion::BuyoutPrice,
@@ -261,62 +349,7 @@ nlohmann::json loadAllLots(SCAPI& scapi, const std::string& id) {
 	return result;
 }
 
-void parseHistory(nlohmann::json& json, std::vector<nlohmann::json>& result) {
-	auto lots = json["prices"];
-	size_t count = 0;
-	for (auto& [_, lot]: lots.items()) {
-		result.push_back(lot);
-		count++;
-	}
-	printf("Received %lu\n", count);
-}
-
-nlohmann::json loadHistory(SCAPI& scapi, const std::string& id, const size_t amount) {
-	printf("Requested history: %s\n", id.c_str());
-
-	std::vector<nlohmann::json> result;
-	size_t limit = 200;
-	size_t offset = 0;
-
-	auto fetchAndParse = [&](size_t currentOffset) {
-		nlohmann::json history = scapi.getSoldLots({
-		  .region_id = "RU",
-		  .item_id = id,
-		  .limit = limit,
-		  .offset = currentOffset,
-		  .additional = false,
-		});
-		parseHistory(history, result);
-		return history["total"].get<int>();
-	};
-
-	int totalFetched = 0;
-	int total = fetchAndParse(offset);
-
-	totalFetched += result.size();
-
-	offset += limit;
-	total -= limit;
-
-	while (total > 0 && totalFetched < amount) {
-		fetchAndParse(offset);
-		totalFetched += result.size();
-		offset += limit;
-		total -= limit;
-
-		if (totalFetched >= amount)
-			break;
-	}
-
-	if (result.size() > amount)
-		result.resize(amount);
-
-	printf("Loaded history for: %s %lu %lu\n", id.c_str(), result.size(), amount);
-
-	return result;
-}
-
-std::optional<msg::Lot> parseLot(const nlohmann::json& j) {
+[[nodiscard]] std::optional<msg::Lot> parseLot(const nlohmann::json& j) {
 	msg::Lot lot;
 	if (j.contains("additional")) {
 		auto additional = j["additional"];
@@ -383,8 +416,7 @@ void pollLots(SCAPI& scapi, WsServer& server, const Config& config) {
 			for (auto& lot_json: active) {
 				auto lot_o = parseLot(lot_json);
 				if (!lot_o) {
-					std::string invalid_lot = lot_json.dump(4);
-					printf("Invalid lot %s\n", invalid_lot.c_str());
+					printf("Invalid lot %s\n", lot_json.dump(4).c_str());
 					continue;
 				}
 
@@ -412,7 +444,7 @@ void pollLots(SCAPI& scapi, WsServer& server, const Config& config) {
 		alert_items.tabs = persistent::tabs;
 		auto connections = server.get_connections();
 		for (auto conn: connections)
-			if (auth.contains(conn->remote_endpoint().address().to_string()))
+			if (persistent::auth.contains(conn->remote_endpoint().address().to_string()))
 				sendResponse(msg::Response{alert_items}, conn);
 
 		std::this_thread::sleep_for(config.sc_api_poll_rate);
@@ -423,7 +455,7 @@ void pollLots(SCAPI& scapi, WsServer& server, const Config& config) {
 				cereal::JSONOutputArchive archive(ss);
 				archive(persistent::alerts);
 			}
-			std::ofstream f("alerts.json");
+			std::ofstream f(getExecutablePath() / "alerts.json");
 			f << ss.str();
 		}
 	}
@@ -432,8 +464,8 @@ void pollLots(SCAPI& scapi, WsServer& server, const Config& config) {
 int main() {
 	Config config(getExecutablePath() / "config.json");
 
-	if (std::filesystem::exists("alerts.json")) {
-		std::ifstream f("alerts.json");
+	if (std::filesystem::exists(getExecutablePath() / "alerts.json")) {
+		std::ifstream f(getExecutablePath() / "alerts.json");
 		{
 			cereal::JSONInputArchive archive(f);
 			archive(persistent::alerts);
@@ -463,7 +495,7 @@ int main() {
 
 	auto& api = server.endpoint["^/api/?$"];
 	api.on_message
-	  = [](std::shared_ptr<WsServer::Connection> connection, std::shared_ptr<WsServer::InMessage> in_message) {
+	  = [&scapi](std::shared_ptr<WsServer::Connection> connection, std::shared_ptr<WsServer::InMessage> in_message) {
 			std::stringstream ss;
 			ss << in_message->string();
 			msg::Request request;
@@ -471,7 +503,7 @@ int main() {
 				cereal::JSONInputArchive archive(ss);
 				archive(request);
 			}
-			processRequest(std::move(request), connection);
+			processRequest(std::move(request), connection, scapi);
 		};
 
 	std::promise<unsigned short> server_port;

@@ -4,9 +4,8 @@
 #include "app.hpp"
 #include "ui_main.hpp"
 #include "history_view.hpp"
-#include "ws.hpp"
-#include "messages.hpp"
 #include "str_utils.hpp"
+#include "ws.hpp"
 
 ItemListView::ItemListView(const bool& open, const ImVec2& pos, const ImVec2& size, const std::string& title) :
 	View(open, pos, size, title) {}
@@ -27,10 +26,16 @@ void ItemListView::update() {
 			for (const auto& [id, name]: app::items) {
 				if (contains(name, query)) {
 					if (ImGui::Selectable(name.c_str())) {
-						HistoryView* historyView
-						  = createView<HistoryView>(ImVec2(100, 100), ImVec2(600, 350), "Price history");
-						sendRequest({msg::RequestHistory{id}});
-						historyView->itemID = id;
+						HistoryView* historyView = createView<HistoryView>(
+						  ImVec2(100, 100),
+						  ImVec2(600, 350),
+						  "Price history [" + app::items.at(id) + "]"
+						);
+						historyView->item_id = id;
+						if (!app::history.contains(id)) {
+							historyView->is_fetching = true;
+							sendRequest({msg::RequestHistory{.id = id, .amount = historyView->fetch_amount}});
+						}
 					}
 				}
 			}
